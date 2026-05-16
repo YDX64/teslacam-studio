@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TeslaCam Viewer</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%235b8def' d='M12 2 4 7v6c0 5 3.5 8.5 8 9 4.5-.5 8-4 8-9V7l-8-5Z'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://unpkg.com" crossorigin>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous">
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-theme="dark">
+
+<div id="app" class="layout">
+
+  <!-- LEFT: Event list -->
+  <aside class="sidebar glass">
+    <header class="sidebar-header">
+      <div class="brand">
+        <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
+          <path fill="currentColor" d="M12 2 4 7v6c0 5 3.5 8.5 8 9 4.5-.5 8-4 8-9V7l-8-5Z"/>
+        </svg>
+        <div>
+          <h1>TeslaCam</h1>
+          <span class="brand-sub">Viewer</span>
+        </div>
+      </div>
+      <button id="refresh-btn" class="icon-btn" title="Yenile">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M17.65 6.35A8 8 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.06A6 6 0 1 1 12 6a5.93 5.93 0 0 1 4.22 1.78L13 11h7V4Z"/></svg>
+      </button>
+    </header>
+
+    <div class="search-wrap">
+      <svg class="search-icon" viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="m21 21-4.34-4.34M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+      <input id="search" type="search" placeholder="Şehir, tarih veya sebep ara…" autocomplete="off">
+    </div>
+
+    <div class="filter-row" role="tablist">
+      <button class="chip active" data-filter="all">Tümü</button>
+      <button class="chip" data-filter="SentryClips">Sentry</button>
+      <button class="chip" data-filter="SavedClips">Kaydedilenler</button>
+      <button class="chip" data-filter="RecentClips">Son Kayıtlar</button>
+    </div>
+
+    <div id="stats" class="stats"></div>
+
+    <ul id="event-list" class="event-list" aria-label="Olay listesi"></ul>
+
+    <footer class="sidebar-footer">
+      <span id="counter">0 olay</span>
+      <span class="dot">•</span>
+      <span id="generated"></span>
+    </footer>
+  </aside>
+
+  <!-- MAIN: Player area -->
+  <main class="main">
+
+    <!-- Top bar with event info -->
+    <header class="topbar glass" id="event-info">
+      <div class="event-meta">
+        <h2 id="event-title">Bir olay seçin</h2>
+        <div class="event-sub">
+          <span id="event-city" class="badge">—</span>
+          <span id="event-time" class="badge">—</span>
+          <span id="event-reason" class="badge reason">—</span>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button id="speed-btn" class="ghost-btn" title="Oynatma hızı">1×</button>
+        <button id="mute-btn" class="ghost-btn" title="Sessiz">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M3 9v6h4l5 5V4L7 9H3Zm13.59 3L19 9.41 17.59 8 15 10.59 12.41 8 11 9.41 13.59 12 11 14.59 12.41 16 15 13.41 17.59 16 19 14.59 16.59 12Z"/></svg>
+        </button>
+        <button id="fullscreen-btn" class="ghost-btn" title="Tam ekran (F)">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M5 5h5V3H3v7h2V5Zm9-2v2h5v5h2V3h-7Zm5 16h-5v2h7v-7h-2v5ZM5 14H3v7h7v-2H5v-5Z"/></svg>
+        </button>
+        <button id="export-btn" class="ghost-btn" title="Olay klasörünü Finder'da aç">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2Z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Empty state -->
+    <section id="empty-state" class="empty-state">
+      <div class="empty-art">
+        <svg viewBox="0 0 200 120" width="180" height="108">
+          <defs>
+            <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#5b8def" stop-opacity=".6"/>
+              <stop offset="100%" stop-color="#5b8def" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <rect x="10" y="20" width="180" height="80" rx="12" fill="url(#g1)" stroke="#5b8def" stroke-width="1.5"/>
+          <circle cx="100" cy="60" r="18" fill="none" stroke="#5b8def" stroke-width="2"/>
+          <circle cx="100" cy="60" r="6" fill="#5b8def"/>
+        </svg>
+      </div>
+      <h3>Sol taraftan bir olay seçin</h3>
+      <p>Tesla araç kameralarınızdan kayıtlar üç açıdan senkron oynatılacak. Olay listesinde arama yapabilir, tarih veya kategoriye göre filtreleyebilirsiniz.</p>
+      <div class="shortcuts">
+        <div><kbd>Space</kbd> Oynat / Duraklat</div>
+        <div><kbd>←</kbd> <kbd>→</kbd> Önceki / Sonraki dakika</div>
+        <div><kbd>F</kbd> Tam ekran</div>
+        <div><kbd>M</kbd> Sessiz</div>
+        <div><kbd>1</kbd>–<kbd>4</kbd> Kamera odakla</div>
+      </div>
+    </section>
+
+    <!-- Player area -->
+    <section id="player-area" class="player-area hidden">
+
+      <div class="video-grid" id="video-grid">
+        <div class="video-cell" data-camera="front">
+          <video class="cam-video" data-cam="front" preload="auto" muted playsinline></video>
+          <div class="cam-overlay">
+            <span class="cam-label">Ön</span>
+            <span class="cam-status" data-status="front"></span>
+          </div>
+        </div>
+        <div class="video-cell" data-camera="left_repeater">
+          <video class="cam-video" data-cam="left_repeater" preload="auto" muted playsinline></video>
+          <div class="cam-overlay">
+            <span class="cam-label">Sol</span>
+            <span class="cam-status" data-status="left_repeater"></span>
+          </div>
+        </div>
+        <div class="video-cell" data-camera="right_repeater">
+          <video class="cam-video" data-cam="right_repeater" preload="auto" muted playsinline></video>
+          <div class="cam-overlay">
+            <span class="cam-label">Sağ</span>
+            <span class="cam-status" data-status="right_repeater"></span>
+          </div>
+        </div>
+        <div class="video-cell" data-camera="back">
+          <video class="cam-video" data-cam="back" preload="auto" muted playsinline></video>
+          <div class="cam-overlay">
+            <span class="cam-label">Arka</span>
+            <span class="cam-status" data-status="back"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="controls glass">
+        <button id="play-btn" class="play-btn" aria-label="Oynat">
+          <svg id="play-icon" viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
+          <svg id="pause-icon" viewBox="0 0 24 24" width="22" height="22" class="hidden"><path fill="currentColor" d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>
+        </button>
+        <div class="time">
+          <span id="time-current">0:00</span>
+          <span class="time-sep">/</span>
+          <span id="time-total">0:00</span>
+        </div>
+        <div class="seek-wrap">
+          <input id="seek" type="range" min="0" max="1000" value="0" step="1" aria-label="Video konumu">
+          <div class="seek-track-progress" id="seek-progress"></div>
+        </div>
+        <div class="minute-counter">
+          <span id="minute-current">1</span>/<span id="minute-total">1</span>
+        </div>
+      </div>
+
+      <!-- Minute timeline -->
+      <div class="timeline-wrap">
+        <div id="minute-timeline" class="minute-timeline" aria-label="Dakika zaman çizelgesi"></div>
+      </div>
+
+      <!-- Bottom panels: details + map -->
+      <div class="bottom-panels">
+        <div class="panel glass details-panel">
+          <h3>Olay Detayları</h3>
+          <dl id="event-details">
+            <dt>Kategori</dt><dd id="d-category">—</dd>
+            <dt>Klasör</dt><dd id="d-folder" class="mono">—</dd>
+            <dt>İlk klip</dt><dd id="d-firstclip" class="mono">—</dd>
+            <dt>Toplam dakika</dt><dd id="d-minutes">—</dd>
+            <dt>Tetikleyen kamera</dt><dd id="d-trigger">—</dd>
+            <dt>GPS</dt><dd id="d-gps" class="mono">—</dd>
+          </dl>
+        </div>
+        <div class="panel glass map-panel">
+          <h3>Konum</h3>
+          <div id="map" class="map"></div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast" role="status"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
+<script src="app.js"></script>
+</body>
+</html>
