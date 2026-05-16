@@ -52,7 +52,10 @@ export function PlayerSurface({
   const seekTarget = usePlayback(s => s.seekTarget);
 
   // -----------------------------------------------------------------
-  // Load / unload src when video changes or segment revision bumps
+  // Load / unload src when video changes or segment revision bumps.
+  // We additionally wait for a real `requestVideoFrameCallback` (or
+  // `seeked` fallback) to fade in — otherwise the first paint can be
+  // a partially-decoded H.264 P-frame which shows as green/yellow.
   // -----------------------------------------------------------------
   useEffect(() => {
     const el = videoRef.current;
@@ -67,10 +70,71 @@ export function PlayerSurface({
     el.preload = "auto";
     el.src = video.url;
     el.load();
-    // Bump load priority on the primary cell
     if (isPrimary) {
       el.setAttribute("fetchpriority", "high");
     }
+
+    // Wait for the first *clean* rendered frame. Tesla's H.264 clips
+    // routinely paint chroma-only (green-tinted) pixels in the first
+    // ~1.5 seconds — likely because the encoder hadn't stabilised yet.
+    // The fix: force a seek to 2.0s on load and only reveal after the
+    // seeked frame has been painted (rVFC where available).
+    let cancelled = false;
+    const node = el;
+
+    (async function bootstrap() {
+      try {
+        if (node.readyState < 2) {
+          await new Promise<void>((resolve, reject) => {
+            const ok = () => { cleanup(); resolve(); };
+            const bad = () => { cleanup(); reject(new Error("metadata")); };
+            const cleanup = () => {
+              node.removeEventListener("loadedmetadata", ok);
+              node.removeEventListener("error", bad);
+            };
+            node.addEventListener("loadedmetadata", ok, { once: true });
+            node.addEventListener("error", bad, { once: true });
+          });
+        }
+        if (cancelled) return;
+
+        const dur = Number.isFinite(node.duration) ? node.duration : 60;
+        const safeTime = Math.min(2.0, Math.max(0, dur - 0.5));
+
+        // Seek and wait for the seeked event
+        await new Promise<void>((resolve) => {
+          const done = () => { node.removeEventListener("seeked", done); resolve(); };
+          node.addEventListener("seeked", done, { once: true });
+          try { node.currentTime = safeTime; } catch { resolve(); }
+        });
+        if (cancelled) return;
+
+        // Wait for a real frame paint — but race against a timeout so a
+        // hidden tab or headless renderer can't deadlock us.
+        const anyEl = node as unknown as { requestVideoFrameCallback?: (cb: () => void) => number };
+        await Promise.race([
+          new Promise<void>(resolve => {
+            if (typeof anyEl.requestVideoFrameCallback === "function") {
+              anyEl.requestVideoFrameCallback(() => resolve());
+            } else {
+              setTimeout(resolve, 100);
+            }
+          }),
+          new Promise<void>(resolve => setTimeout(resolve, 400)),
+        ]);
+        if (cancelled) return;
+
+        // Mirror this position into the shared store so all surfaces stay aligned
+        const store = usePlayback.getState();
+        if (isPrimary) {
+          store.setCurrentTime(safeTime);
+        }
+        setReady(true);
+      } catch {
+        if (!cancelled) setErrored(true);
+      }
+    })();
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [video?.url, segmentRevision, isPrimary]);
 
@@ -103,11 +167,12 @@ export function PlayerSurface({
   }, [isPlaying, ready]);
 
   // -----------------------------------------------------------------
-  // External seek requests
+  // External seek requests. Only listens to seekRevision so the
+  // bootstrap-time clean-frame seek isn't undone after `ready` flips.
   // -----------------------------------------------------------------
   useEffect(() => {
     const el = videoRef.current;
-    if (!el || !ready) return;
+    if (!el) return;
     const dur = el.duration;
     if (!Number.isFinite(dur) || dur <= 0) return;
     const target = Math.min(Math.max(seekTarget, 0), dur);
@@ -115,7 +180,7 @@ export function PlayerSurface({
       try { el.currentTime = target; } catch { /* may throw if not seekable yet */ }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seekRevision, ready]);
+  }, [seekRevision]);
 
   // -----------------------------------------------------------------
   // Primary cell drives currentTime/duration up via rAF + sync check
@@ -177,6 +242,7 @@ export function PlayerSurface({
         <>
           <video
             ref={videoRef}
+            data-cam={camera}
             playsInline
             disablePictureInPicture
             disableRemotePlayback
@@ -187,7 +253,6 @@ export function PlayerSurface({
               "h-full w-full object-cover transition-opacity duration-200",
               ready ? "opacity-100" : "opacity-0",
             )}
-            onCanPlayThrough={() => setReady(true)}
             onError={() => setErrored(true)}
           />
 

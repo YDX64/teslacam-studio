@@ -1,6 +1,7 @@
-/*  EventWorkspace — the right-hand main pane assembled from header, insight   */
-/*  strip, video grid, controls, and bottom timelines + inspector.             */
+/*  EventWorkspace — main pane. Fully responsive: side-by-side on desktop,     */
+/*  stacked + drawer on mobile/tablet.                                         */
 
+import { useEffect } from "react";
 import clsx from "clsx";
 import {
   selectedEvent,
@@ -8,6 +9,8 @@ import {
   useLibrary,
 } from "../stores/libraryStore";
 import { usePlayback } from "../stores/playbackStore";
+import { useUiStore } from "../App";
+import { useViewport } from "../hooks/useViewport";
 import { EventHeader } from "./EventHeader";
 import { InsightStrip } from "./InsightStrip";
 import { VideoGrid } from "./VideoGrid";
@@ -15,22 +18,24 @@ import { PlaybackControls } from "./PlaybackControls";
 import { DayTimeline, SegmentTimeline } from "./Timelines";
 import { EventInspector } from "./EventInspector";
 import { EmptyState } from "./EmptyState";
-import { useEffect, useState } from "react";
+import { CloseIcon } from "./Icons";
 
 export function EventWorkspace() {
   const ev = useLibrary(selectedEvent);
   const seg = useLibrary(selectedSegment);
-  const [inspectorOpen, setInspectorOpen] = useState(true);
   const segmentRevision = usePlayback(s => s.segmentRevision);
   const status = usePlayback(s => s.status);
+  const inspectorOpen = useUiStore(s => s.inspectorOpen);
+  const toggleInspector = useUiStore(s => s.toggleInspector);
+  const vp = useViewport();
 
-  // Bump segment revision whenever the segment id changes (selectSegment, prev/next, etc.)
+  // Bump segment revision when segment id changes
   useEffect(() => {
     usePlayback.getState().bumpSegment();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seg?.id]);
 
-  // Auto-clear status after 4s
+  // Auto-clear status
   useEffect(() => {
     if (!status) return;
     const t = setTimeout(() => usePlayback.getState().setStatus(null), 4000);
@@ -39,39 +44,91 @@ export function EventWorkspace() {
 
   if (!ev) return <EmptyState />;
 
+  const showInspectorInline = vp.isDesktop && inspectorOpen;
+
   return (
-    <section className="flex h-full min-h-0 flex-col gap-3">
+    <section className="flex h-full min-h-0 flex-col gap-2 sm:gap-3">
       <EventHeader />
-      <InsightStrip event={ev} />
+
+      {/* Insight strip — only on tablet+ to save vertical space on phones */}
+      <div className="hidden md:block">
+        <InsightStrip event={ev} />
+      </div>
 
       <div className={clsx(
-        "grid min-h-0 flex-1 gap-3",
-        inspectorOpen ? "grid-cols-[1fr_320px]" : "grid-cols-1",
+        "grid min-h-0 flex-1 gap-2 sm:gap-3",
+        showInspectorInline ? "lg:grid-cols-[1fr_320px] xl:grid-cols-[1fr_360px]" : "grid-cols-1",
       )}>
-        <div className="flex min-h-0 flex-col gap-3">
-          <div className="min-h-[240px] flex-1">
+        <div className="flex min-h-0 flex-col gap-2 sm:gap-3">
+          {/* Video grid — flex-1 so it fills remaining space */}
+          <div className="min-h-[200px] flex-1 sm:min-h-[260px]">
             <VideoGrid key={segmentRevision} segment={seg} />
           </div>
+
+          {/* Controls */}
           <PlaybackControls
-            onToggleInspector={() => setInspectorOpen(v => !v)}
+            onToggleInspector={toggleInspector}
             inspectorOpen={inspectorOpen}
           />
+
+          {/* Segment timeline */}
           <SegmentTimeline />
-          <DayTimeline />
+
+          {/* Day timeline only on lg+, takes too much space on smaller screens */}
+          <div className="hidden lg:block">
+            <DayTimeline />
+          </div>
         </div>
 
-        {inspectorOpen && <EventInspector />}
+        {/* Inline inspector for desktop+ */}
+        {showInspectorInline && (
+          <aside className="scrollbar-thin flex max-h-full min-h-0 flex-col overflow-y-auto">
+            <EventInspector />
+          </aside>
+        )}
       </div>
+
+      {/* Inspector overlay for tablet/mobile */}
+      {!vp.isDesktop && inspectorOpen && (
+        <InspectorOverlay onClose={toggleInspector}>
+          <EventInspector />
+        </InspectorOverlay>
+      )}
 
       {/* Toast */}
       {status && (
         <div
           role="status"
-          className="glass-strong fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full px-4 py-2 text-[13px] text-(--color-text) shadow-(--shadow-pop)"
+          className="glass-strong fixed bottom-4 left-1/2 z-[60] -translate-x-1/2 max-w-[90vw] rounded-full px-4 py-2 text-center text-[13px] text-(--color-text) shadow-(--shadow-pop)"
         >
           {status}
         </div>
       )}
     </section>
+  );
+}
+
+function InspectorOverlay({
+  children, onClose,
+}: { children: React.ReactNode; onClose: () => void }) {
+  return (
+    <>
+      <div className="fixed inset-0 z-40 bg-black/55 backdrop-blur-sm" onClick={onClose} />
+      <aside className="fixed right-0 top-0 z-50 flex h-full w-[min(380px,88vw)] flex-col border-l border-(--color-border) bg-(--color-bg-1) shadow-(--shadow-pop)">
+        <div className="flex items-center justify-between border-b border-(--color-border) px-3 py-2.5">
+          <span className="text-[13px] font-semibold">Details</span>
+          <button
+            onClick={onClose}
+            className="grid h-8 w-8 place-items-center rounded-lg text-(--color-text-dim) hover:bg-white/5 hover:text-(--color-text)"
+            aria-label="Close"
+          >
+            <CloseIcon className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="scrollbar-thin flex-1 overflow-y-auto p-3">
+          {children}
+        </div>
+      </aside>
+    </>
   );
 }

@@ -19,7 +19,8 @@ import {
   SearchIcon,
   ShieldIcon,
 } from "./Icons";
-import { formatBytes, formatDayLabel, formatSidebarTime } from "../utils/format";
+import { DatePicker } from "./DatePicker";
+import { formatBytes, formatSidebarTime } from "../utils/format";
 import type { ClipCategory, ClipEvent } from "../types";
 import { eventTotalBytes } from "../types";
 
@@ -90,19 +91,13 @@ export function Sidebar() {
         ))}
       </div>
 
-      {/* Day filter */}
-      <div className="flex items-center gap-2 px-4 pb-2 text-xs">
-        <span className="text-(--color-text-faint)">Day</span>
-        <select
-          value={state.selectedDay ?? ""}
-          onChange={e => state.setDay(e.target.value || null)}
-          className="flex-1 rounded-lg border border-(--color-border) bg-white/[0.04] px-2 py-1 text-(--color-text) outline-none focus:border-(--color-accent)"
-        >
-          <option value="">All days</option>
-          {days.map(d => (
-            <option key={d} value={d}>{formatDayLabel(d)}</option>
-          ))}
-        </select>
+      {/* Day filter — custom calendar popover */}
+      <div className="px-4 pb-2">
+        <DatePicker
+          value={state.selectedDay}
+          onChange={d => state.setDay(d)}
+          availableDays={days}
+        />
       </div>
 
       {/* Stats badges */}

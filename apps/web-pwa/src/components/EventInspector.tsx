@@ -19,7 +19,6 @@ import {
   eventDurationSeconds,
   eventTotalBytes,
   expectedCoverage,
-  type CameraKind,
   type ClipEvent,
   type Segment,
 } from "../types";
@@ -36,6 +35,9 @@ export function EventInspector() {
     <aside className="scrollbar-thin flex h-full flex-col gap-3 overflow-y-auto rounded-2xl">
       <SectionTitle title="Metadata" />
       <MetadataCard event={ev} />
+
+      <SectionTitle title="Source" />
+      <SourceCard event={ev} />
 
       <SectionTitle title="Camera coverage" />
       <CoverageCard event={ev} />
@@ -67,6 +69,22 @@ function SectionTitle({ title }: { title: string }) {
     <h3 className="px-1 text-[10px] font-bold uppercase tracking-[1.7px] text-(--color-text-faint)">
       {title}
     </h3>
+  );
+}
+
+function SourceCard({ event }: { event: ClipEvent }) {
+  const lib = useLibrary.getState();
+  const root = lib.manifest?.root ?? "";
+  const full = event.category === "RecentClips" ? root + "/RecentClips" : `${root}/${event.category}/${event.folder}`;
+  return (
+    <div className="glass rounded-xl px-3.5 py-3">
+      <div
+        className="select-text break-all font-mono text-[11px] text-(--color-text-dim)"
+        title={full}
+      >
+        {full}
+      </div>
+    </div>
   );
 }
 
@@ -146,20 +164,28 @@ function SegmentCard({ event, segment }: { event: ClipEvent; segment: Segment })
       <Row k="Cameras">{cams.length} present</Row>
       <Row k="Size">{formatBytes(totalBytes)}</Row>
 
-      <ul className="mt-1.5 space-y-1">
+      <ul className="mt-1.5 space-y-1.5">
         {cams.map(cam => {
           const file = segment.cameras[cam];
           if (!file) return null;
           return (
             <li
               key={cam}
-              className="flex items-center justify-between rounded-md bg-white/[0.03] px-2 py-1 text-[11px]"
+              className="rounded-md bg-white/[0.03] px-2 py-1.5 text-[11px]"
               data-camera={cam}
             >
-              <span className="text-(--color-text-dim)">{CAMERA_LABEL[cam]}</span>
-              <span className="font-mono tabular-nums text-(--color-text-faint)">
-                {formatBytes(file.size)}
-              </span>
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-medium text-(--color-text-dim)">{CAMERA_LABEL[cam]}</span>
+                <span className="font-mono tabular-nums text-(--color-text-faint)">
+                  {formatBytes(file.size)}
+                </span>
+              </div>
+              <div
+                className="mt-0.5 truncate font-mono text-[10px] text-(--color-text-faint)"
+                title={file.name}
+              >
+                {file.name}
+              </div>
             </li>
           );
         })}
@@ -285,6 +311,3 @@ function escapeHtml(s: string): string {
 
 /* Re-exported for convenient access from elsewhere if needed */
 export { selectedEvent, selectedSegment };
-
-/* eslint-disable @typescript-eslint/no-unused-vars */
-function _kCheck(_c: CameraKind) { /* compile-time check */ }
