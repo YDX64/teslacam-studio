@@ -50,6 +50,43 @@
         border: 3px solid var(--color-accent);
         cursor: pointer;
       }
+
+      /* Tesla portrait — large slider so it's easy to grab with a finger */
+      .tesla-seek {
+        -webkit-appearance: none;
+        appearance: none;
+        height: 14px;
+        background: linear-gradient(
+          to right,
+          var(--color-accent) 0,
+          var(--color-accent) var(--progress, 0%),
+          rgba(255, 255, 255, 0.10) var(--progress, 0%),
+          rgba(255, 255, 255, 0.10) 100%
+        );
+        border-radius: 999px;
+        outline: none;
+        cursor: pointer;
+      }
+      .tesla-seek::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: white;
+        border: 5px solid var(--color-accent);
+        box-shadow: 0 0 0 4px rgba(91, 141, 239, 0.30),
+                    0 4px 12px rgba(91, 141, 239, 0.55);
+        cursor: pointer;
+      }
+      .tesla-seek::-moz-range-thumb {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: white;
+        border: 5px solid var(--color-accent);
+        cursor: pointer;
+      }
       details > summary::-webkit-details-marker { display: none; }
       details > summary { list-style: none; }
       /* Initial loading skeleton — appears before React mounts */

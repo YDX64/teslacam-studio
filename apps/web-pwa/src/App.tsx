@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import clsx from "clsx";
 import { Sidebar } from "./components/Sidebar";
 import { EventWorkspace } from "./components/EventWorkspace";
+import { TeslaPortraitLayout } from "./components/TeslaPortraitLayout";
 import { useLibrary, selectedSegment } from "./stores/libraryStore";
 import { usePlayback } from "./stores/playbackStore";
 import { camerasInSegment } from "./types";
@@ -126,7 +127,9 @@ export default function App() {
 
   return (
     <div className="grid h-screen w-screen overflow-hidden bg-(--color-bg-0) text-(--color-text)">
-      {vp.isDesktop ? (
+      {vp.teslaPortrait ? (
+        <TeslaPortraitLayout />
+      ) : vp.isDesktop ? (
         <DesktopLayout />
       ) : (
         <MobileLayout
