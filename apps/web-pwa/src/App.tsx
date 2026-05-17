@@ -130,7 +130,7 @@ export default function App() {
   }, [setSidebarOpen, setInspectorOpen]);
 
   return (
-    <div className="grid h-screen w-screen overflow-hidden bg-(--color-bg-0) text-(--color-text)">
+    <div className="relative h-screen w-screen overflow-hidden bg-(--color-bg-0) text-(--color-text)">
       {vp.teslaPortrait ? (
         <TeslaPortraitLayout />
       ) : vp.isDesktop ? (
@@ -156,14 +156,19 @@ export default function App() {
 function DesktopLayout() {
   const vp = useViewport();
   return (
-    <div className={clsx(
-      "grid h-full w-full gap-3 p-3",
-      vp.isWide ? "grid-cols-[340px_1fr]" : "grid-cols-[300px_1fr]",
-    )}>
-      <Sidebar />
-      <main className="min-h-0 min-w-0 overflow-hidden">
-        <EventWorkspace />
-      </main>
+    <div className="flex h-full w-full justify-center">
+      {/* Cap content at 1800px so a 4K monitor doesn't stretch tiles to
+          implausible sizes. The grid below still fills width naturally
+          on anything smaller. */}
+      <div className={clsx(
+        "grid h-full w-full max-w-[1800px] gap-3 p-3 grid-rows-[1fr]",
+        vp.isWide ? "grid-cols-[340px_minmax(0,1fr)]" : "grid-cols-[300px_minmax(0,1fr)]",
+      )}>
+        <Sidebar />
+        <main className="min-h-0 min-w-0 overflow-y-auto scrollbar-thin">
+          <EventWorkspace />
+        </main>
+      </div>
     </div>
   );
 }

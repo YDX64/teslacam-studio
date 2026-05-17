@@ -45,36 +45,34 @@ export function VideoGrid({ segment }: Props) {
   }
 
   return (
-    <div
-      ref={containerRef}
-      className={clsx(
-        "video-grid relative h-full w-full overflow-hidden rounded-2xl border border-(--color-border) bg-black",
-      )}
-      data-layout={effectiveLayout}
-      data-focused={focusedAttr}
-      data-cameras={camerasPresent.join(" ")}
-    >
-      {ALL_CAMERAS.filter(cam => segment.cameras[cam]).map(cam => (
-        <PlayerSurface
-          key={cam}
-          camera={cam}
-          video={segment.cameras[cam]}
-          isPrimary={cam === primary}
-          isFocused={focused === cam}
-          onTileFullscreen={() => {
-            // Find this tile's actual <video> element and fullscreen *that*,
-            // keeping the global chrome on top.
-            const videoEl = containerRef.current?.querySelector(
-              `[data-cam-tile="${cam}"]`,
-            ) as HTMLElement | null;
-            if (videoEl) void enterFullscreen(videoEl);
-          }}
-        />
-      ))}
+    <div className="video-grid-wrap flex h-full w-full items-center justify-center min-h-0">
+      <div
+        ref={containerRef}
+        className={clsx(
+          "video-grid relative overflow-hidden rounded-2xl border border-(--color-border) bg-black",
+        )}
+        data-layout={effectiveLayout}
+        data-focused={focusedAttr}
+        data-cameras={camerasPresent.join(" ")}
+      >
+        {ALL_CAMERAS.filter(cam => segment.cameras[cam]).map(cam => (
+          <PlayerSurface
+            key={cam}
+            camera={cam}
+            video={segment.cameras[cam]}
+            isPrimary={cam === primary}
+            isFocused={focused === cam}
+            onTileFullscreen={() => {
+              const videoEl = containerRef.current?.querySelector(
+                `[data-cam-tile="${cam}"]`,
+              ) as HTMLElement | null;
+              if (videoEl) void enterFullscreen(videoEl);
+            }}
+          />
+        ))}
 
-      {/* Hidden affordance — global grid fullscreen is bound to PlaybackControls,
-          but we keep a reference here in case other components need it. */}
-      <span data-grid-fullscreen onClick={gridFullscreen} hidden />
+        <span data-grid-fullscreen onClick={gridFullscreen} hidden />
+      </div>
     </div>
   );
 }

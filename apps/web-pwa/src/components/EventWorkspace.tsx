@@ -47,7 +47,7 @@ export function EventWorkspace() {
   const showInspectorInline = vp.isDesktop && inspectorOpen;
 
   return (
-    <section className="flex h-full min-h-0 flex-col gap-2 sm:gap-3">
+    <section className="flex min-h-full flex-col gap-2 sm:gap-3">
       <EventHeader />
 
       {/* Insight strip — only on tablet+ to save vertical space on phones */}
@@ -57,11 +57,14 @@ export function EventWorkspace() {
 
       <div className={clsx(
         "grid min-h-0 flex-1 gap-2 sm:gap-3",
-        showInspectorInline ? "lg:grid-cols-[1fr_320px] xl:grid-cols-[1fr_360px]" : "grid-cols-1",
+        showInspectorInline
+          ? "lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_360px]"
+          : "grid-cols-1",
       )}>
-        <div className="flex min-h-0 flex-col gap-2 sm:gap-3">
-          {/* Video grid — flex-1 so it fills remaining space */}
-          <div className="min-h-[200px] flex-1 sm:min-h-[260px]">
+        <div className="flex min-w-0 min-h-0 flex-col gap-2 sm:gap-3">
+          {/* Video grid — wrap centers + clamps via flex/aspect rules.
+              min-h ensures usable size even when the viewport is short. */}
+          <div className="min-h-[300px] flex-1 lg:min-h-[420px] min-w-0">
             <VideoGrid key={segmentRevision} segment={seg} />
           </div>
 
