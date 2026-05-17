@@ -138,3 +138,147 @@
   color: var(--color-text) !important;
   border: 1px solid var(--color-border) !important;
 }
+
+/* -----------------------------------------------------------------
+   VideoGrid — named grid areas. Stable PlayerSurface tree; layout
+   switches are pure CSS, so <video> elements never unmount.
+----------------------------------------------------------------- */
+
+.video-grid {
+  display: grid;
+  gap: 4px;
+}
+
+/* Default: hide any tile whose camera doesn't have a grid-area assigned
+   by the current layout. This keeps surplus cameras mounted (preserving
+   decode state) but off-screen. */
+.video-grid > .video-tile {
+  min-width: 0;
+  min-height: 0;
+}
+
+/* ----- Studio: big primary on the left, sides stacked on the right ----- */
+.video-grid[data-layout="studio"] {
+  grid-template-columns: 2fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr;
+  grid-template-areas:
+    "front left_repeater"
+    "front right_repeater"
+    "front back";
+}
+.video-grid[data-layout="studio"] > [data-cam-tile="front"]          { grid-area: front; }
+.video-grid[data-layout="studio"] > [data-cam-tile="left_repeater"]  { grid-area: left_repeater; }
+.video-grid[data-layout="studio"] > [data-cam-tile="right_repeater"] { grid-area: right_repeater; }
+.video-grid[data-layout="studio"] > [data-cam-tile="back"]           { grid-area: back; }
+
+/* ----- Triptych: three equal columns ----- */
+.video-grid[data-layout="triptych"] {
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr;
+  grid-template-areas: "left_repeater front right_repeater";
+}
+.video-grid[data-layout="triptych"] > [data-cam-tile="left_repeater"]  { grid-area: left_repeater; }
+.video-grid[data-layout="triptych"] > [data-cam-tile="front"]          { grid-area: front; }
+.video-grid[data-layout="triptych"] > [data-cam-tile="right_repeater"] { grid-area: right_repeater; }
+
+/* ----- Theater: front fills top, three below ----- */
+.video-grid[data-layout="theater"] {
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 3fr 1fr;
+  grid-template-areas:
+    "front front front"
+    "left_repeater back right_repeater";
+}
+.video-grid[data-layout="theater"] > [data-cam-tile="front"]          { grid-area: front; }
+.video-grid[data-layout="theater"] > [data-cam-tile="left_repeater"]  { grid-area: left_repeater; }
+.video-grid[data-layout="theater"] > [data-cam-tile="back"]           { grid-area: back; }
+.video-grid[data-layout="theater"] > [data-cam-tile="right_repeater"] { grid-area: right_repeater; }
+
+/* ----- Mosaic: 2x2 ----- */
+.video-grid[data-layout="mosaic"] {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  grid-template-areas:
+    "front left_repeater"
+    "right_repeater back";
+}
+.video-grid[data-layout="mosaic"] > [data-cam-tile="front"]          { grid-area: front; }
+.video-grid[data-layout="mosaic"] > [data-cam-tile="left_repeater"]  { grid-area: left_repeater; }
+.video-grid[data-layout="mosaic"] > [data-cam-tile="right_repeater"] { grid-area: right_repeater; }
+.video-grid[data-layout="mosaic"] > [data-cam-tile="back"]           { grid-area: back; }
+
+/* ----- Focus modes: focused cam fills top, others tile below ----- */
+.video-grid[data-layout="focus"] {
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 3fr 1fr;
+}
+.video-grid[data-layout="focus"][data-focused="front"] {
+  grid-template-areas:
+    "front front front"
+    "left_repeater back right_repeater";
+}
+.video-grid[data-layout="focus"][data-focused="front"] > [data-cam-tile="front"]          { grid-area: front; }
+.video-grid[data-layout="focus"][data-focused="front"] > [data-cam-tile="left_repeater"]  { grid-area: left_repeater; }
+.video-grid[data-layout="focus"][data-focused="front"] > [data-cam-tile="back"]           { grid-area: back; }
+.video-grid[data-layout="focus"][data-focused="front"] > [data-cam-tile="right_repeater"] { grid-area: right_repeater; }
+
+.video-grid[data-layout="focus"][data-focused="left_repeater"] {
+  grid-template-areas:
+    "left_repeater left_repeater left_repeater"
+    "front back right_repeater";
+}
+.video-grid[data-layout="focus"][data-focused="left_repeater"] > [data-cam-tile="left_repeater"]  { grid-area: left_repeater; }
+.video-grid[data-layout="focus"][data-focused="left_repeater"] > [data-cam-tile="front"]          { grid-area: front; }
+.video-grid[data-layout="focus"][data-focused="left_repeater"] > [data-cam-tile="back"]           { grid-area: back; }
+.video-grid[data-layout="focus"][data-focused="left_repeater"] > [data-cam-tile="right_repeater"] { grid-area: right_repeater; }
+
+.video-grid[data-layout="focus"][data-focused="right_repeater"] {
+  grid-template-areas:
+    "right_repeater right_repeater right_repeater"
+    "front left_repeater back";
+}
+.video-grid[data-layout="focus"][data-focused="right_repeater"] > [data-cam-tile="right_repeater"] { grid-area: right_repeater; }
+.video-grid[data-layout="focus"][data-focused="right_repeater"] > [data-cam-tile="front"]          { grid-area: front; }
+.video-grid[data-layout="focus"][data-focused="right_repeater"] > [data-cam-tile="left_repeater"]  { grid-area: left_repeater; }
+.video-grid[data-layout="focus"][data-focused="right_repeater"] > [data-cam-tile="back"]           { grid-area: back; }
+
+.video-grid[data-layout="focus"][data-focused="back"] {
+  grid-template-areas:
+    "back back back"
+    "front left_repeater right_repeater";
+}
+.video-grid[data-layout="focus"][data-focused="back"] > [data-cam-tile="back"]           { grid-area: back; }
+.video-grid[data-layout="focus"][data-focused="back"] > [data-cam-tile="front"]          { grid-area: front; }
+.video-grid[data-layout="focus"][data-focused="back"] > [data-cam-tile="left_repeater"]  { grid-area: left_repeater; }
+.video-grid[data-layout="focus"][data-focused="back"] > [data-cam-tile="right_repeater"] { grid-area: right_repeater; }
+
+/* Extra cameras (cabin, main, wide, narrow, fisheye) not assigned to any
+   named area in the standard layouts: hide them. They stay mounted so
+   their <video> element keeps decoding (no flicker if the user switches
+   to a layout that includes them later). */
+.video-grid > [data-cam-tile="cabin"],
+.video-grid > [data-cam-tile="main"],
+.video-grid > [data-cam-tile="wide"],
+.video-grid > [data-cam-tile="narrow"],
+.video-grid > [data-cam-tile="fisheye"] {
+  position: absolute;
+  width: 1px; height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* When in fullscreen, the chrome at the bottom needs breathing room. */
+.video-grid:fullscreen,
+.video-grid:-webkit-full-screen {
+  background: black;
+  width: 100vw; height: 100vh;
+  border-radius: 0;
+  border: 0;
+}
+
+/* Per-cell fullscreen — make the <video> fill the screen. */
+.video-tile:fullscreen,
+.video-tile:-webkit-full-screen {
+  background: black;
+  width: 100vw; height: 100vh;
+}

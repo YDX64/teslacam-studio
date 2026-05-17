@@ -11,6 +11,7 @@
 import { useEffect, useRef as useRefSync, useState } from "react";
 import clsx from "clsx";
 import {
+  backendAvailable,
   selectedEvent,
   selectedSegment,
   useLibrary,
@@ -19,6 +20,7 @@ import { usePlayback } from "../stores/playbackStore";
 import { useBookmarks } from "../stores/bookmarkStore";
 import { api } from "../api";
 import { formatTime, rateLabel } from "../utils/format";
+import { enterFullscreen } from "../utils/fullscreen";
 import type { AdvanceScope, LayoutMode, RenderMode } from "../types";
 import {
   BookmarkIcon,
@@ -29,6 +31,7 @@ import {
   DocIcon,
   ExportIcon,
   FolderIcon,
+  FullscreenIcon,
   InIcon,
   InspectorIcon,
   Layout3UpIcon,
@@ -74,6 +77,7 @@ export function PlaybackControls({ onToggleInspector, inspectorOpen }: Props) {
   const bookmarks = useBookmarks();
   const event = selectedEvent(lib);
   const segment = selectedSegment(lib);
+  const canExport = backendAvailable(lib);
 
   const total = playback.duration;
   const progress = total > 0 ? Math.min(playback.currentTime / total, 1) : 0;
@@ -82,6 +86,11 @@ export function PlaybackControls({ onToggleInspector, inspectorOpen }: Props) {
   const isBookmarked = event && segment ? bookmarks.has(event.id, segment.id) : false;
 
   const [busy, setBusy] = useState<string | null>(null);
+
+  function fullscreenGrid() {
+    const grid = document.querySelector(".video-grid") as HTMLElement | null;
+    if (grid) void enterFullscreen(grid);
+  }
 
   // Auto-advance when current minute reaches its end
   useEffect(() => {
@@ -239,7 +248,8 @@ export function PlaybackControls({ onToggleInspector, inspectorOpen }: Props) {
             usePlayback.getState().setStatus(`${result.length} frames saved to Desktop`);
           })}
           loading={busy === "snap"}
-          title="Snapshot (all cameras)"
+          disabled={!canExport}
+          title={canExport ? "Snapshot (all cameras)" : "Snapshot requires the Python backend"}
         >
           <SnapshotIcon className="h-3.5 w-3.5" />
           <span className="hidden lg:inline">Snapshot</span>
@@ -252,7 +262,8 @@ export function PlaybackControls({ onToggleInspector, inspectorOpen }: Props) {
             usePlayback.getState().setStatus(`Segment exported → ${res.path}`);
           })}
           loading={busy === "exp-seg"}
-          title="Export this minute"
+          disabled={!canExport}
+          title={canExport ? "Export this minute" : "Export requires the Python backend"}
         >
           <ExportIcon className="h-3.5 w-3.5" />
           <span className="hidden lg:inline">Segment</span>
@@ -269,7 +280,8 @@ export function PlaybackControls({ onToggleInspector, inspectorOpen }: Props) {
             usePlayback.getState().setStatus(`Event exported → ${res.path}`);
           })}
           loading={busy === "exp-ev"}
-          title="Export entire event"
+          disabled={!canExport}
+          title={canExport ? "Export entire event" : "Export requires the Python backend"}
         >
           <ExportIcon className="h-3.5 w-3.5" />
           <span className="hidden lg:inline">Event</span>
@@ -285,7 +297,8 @@ export function PlaybackControls({ onToggleInspector, inspectorOpen }: Props) {
             usePlayback.getState().setStatus(`Report → ${res.path}`);
           })}
           loading={busy === "rep"}
-          title="Markdown report"
+          disabled={!canExport}
+          title={canExport ? "Markdown report" : "Reports require the Python backend"}
         >
           <DocIcon className="h-3.5 w-3.5" />
           <span className="hidden lg:inline">Report</span>
@@ -299,7 +312,8 @@ export function PlaybackControls({ onToggleInspector, inspectorOpen }: Props) {
             await api.reveal(decodeURIComponent(first.replace("/media/", "")));
           })}
           loading={busy === "rev"}
-          title="Reveal in Finder"
+          disabled={!canExport}
+          title={canExport ? "Reveal in Finder" : "Reveal requires the Python backend"}
         >
           <FolderIcon className="h-3.5 w-3.5" />
           <span className="hidden lg:inline">Reveal</span>
@@ -346,6 +360,13 @@ export function PlaybackControls({ onToggleInspector, inspectorOpen }: Props) {
           />
 
           <ChipBtn
+            onClick={fullscreenGrid}
+            title="Fullscreen grid"
+          >
+            <FullscreenIcon className="h-3.5 w-3.5" />
+          </ChipBtn>
+
+          <ChipBtn
             active={inspectorOpen}
             onClick={onToggleInspector}
             title="Toggle inspector"
@@ -361,26 +382,28 @@ export function PlaybackControls({ onToggleInspector, inspectorOpen }: Props) {
 /* -------------------------------- chips / glyphs ----------------------- */
 
 function ChipBtn({
-  children, onClick, active, title, loading,
+  children, onClick, active, title, loading, disabled,
 }: {
   children: React.ReactNode;
   onClick: () => void;
   active?: boolean;
   title?: string;
   loading?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       title={title}
-      disabled={loading}
+      disabled={loading || disabled}
       className={clsx(
         "inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] font-medium transition whitespace-nowrap",
         active
           ? "border-(--color-accent)/40 bg-(--color-accent)/16 text-(--color-accent-2)"
           : "border-(--color-border) bg-white/[0.04] text-(--color-text-dim) hover:border-(--color-border-strong) hover:text-(--color-text)",
         loading && "opacity-60 cursor-wait",
+        disabled && !loading && "opacity-40 cursor-not-allowed",
       )}
     >
       {children}

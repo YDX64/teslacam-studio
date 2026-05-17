@@ -12,6 +12,7 @@ import { useBookmarks } from "../stores/bookmarkStore";
 import {
   BookmarkIcon,
   CarIcon,
+  FolderIcon,
   HonkIcon,
   RecentIcon,
   RefreshIcon,
@@ -50,14 +51,24 @@ export function Sidebar() {
             <div className="text-[10px] uppercase tracking-[2px] text-(--color-text-faint)">PWA · v1.0</div>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => state.load()}
-          title="Re-scan folder"
-          className="grid h-9 w-9 place-items-center rounded-xl text-(--color-text-dim) transition hover:bg-white/5 hover:text-(--color-text)"
-        >
-          <RefreshIcon className={clsx("h-4 w-4", state.isLoading && "animate-spin")} />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => state.openPicker()}
+            title="Change folder"
+            className="grid h-9 w-9 place-items-center rounded-xl text-(--color-text-dim) transition hover:bg-white/5 hover:text-(--color-text)"
+          >
+            <FolderIcon className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => state.reload()}
+            title="Re-scan folder"
+            className="grid h-9 w-9 place-items-center rounded-xl text-(--color-text-dim) transition hover:bg-white/5 hover:text-(--color-text)"
+          >
+            <RefreshIcon className={clsx("h-4 w-4", state.isLoading && "animate-spin")} />
+          </button>
+        </div>
       </header>
 
       {/* Search */}

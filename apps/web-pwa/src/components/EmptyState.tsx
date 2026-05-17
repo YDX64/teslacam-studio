@@ -1,11 +1,16 @@
 /*  Empty state shown when no event is selected (cold start, empty manifest).  */
 
 import { useLibrary } from "../stores/libraryStore";
-import { CarIcon, RefreshIcon } from "./Icons";
+import { CarIcon, FolderIcon, RefreshIcon } from "./Icons";
 
 export function EmptyState() {
   const isLoading = useLibrary(s => s.isLoading);
   const error = useLibrary(s => s.error);
+  const source = useLibrary(s => s.source);
+  const openPicker = useLibrary(s => s.openPicker);
+  const reload = useLibrary(s => s.reload);
+
+  const hasSource = source != null;
 
   return (
     <div className="glass flex h-full flex-col items-center justify-center gap-4 rounded-2xl p-12 text-center">
@@ -13,7 +18,9 @@ export function EmptyState() {
         <CarIcon className="h-9 w-9" />
       </div>
       <h2 className="text-lg font-semibold text-(--color-text)">
-        {isLoading ? "Scanning your TeslaCam folder…" : "Pick an event on the left"}
+        {isLoading ? "Scanning your TeslaCam folder…"
+         : hasSource ? "Pick an event on the left"
+         : "Open a folder to get started"}
       </h2>
       <p className="max-w-md text-sm text-(--color-text-dim)">
         Tesla saves three folders to USB: RecentClips, SavedClips, SentryClips.
@@ -26,12 +33,24 @@ export function EmptyState() {
         </div>
       )}
 
-      <button
-        onClick={() => useLibrary.getState().load()}
-        className="inline-flex items-center gap-2 rounded-full border border-(--color-border) bg-white/[0.04] px-4 py-2 text-[13px] text-(--color-text-dim) transition hover:border-(--color-border-strong) hover:text-(--color-text)"
-      >
-        <RefreshIcon className="h-4 w-4" /> Re-scan
-      </button>
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        <button
+          onClick={openPicker}
+          className="inline-flex items-center gap-2 rounded-full border border-(--color-accent)/40 bg-gradient-to-br from-(--color-accent) to-(--color-accent-2) px-4 py-2 text-[13px] font-semibold text-white shadow-[0_6px_18px_var(--color-accent-glow)] transition active:scale-[0.99]"
+        >
+          <FolderIcon className="h-4 w-4" />
+          {hasSource ? "Change folder" : "Open a folder"}
+        </button>
+
+        {hasSource && (
+          <button
+            onClick={() => void reload()}
+            className="inline-flex items-center gap-2 rounded-full border border-(--color-border) bg-white/[0.04] px-4 py-2 text-[13px] text-(--color-text-dim) transition hover:border-(--color-border-strong) hover:text-(--color-text)"
+          >
+            <RefreshIcon className="h-4 w-4" /> Re-scan
+          </button>
+        )}
+      </div>
 
       <ShortcutsTable />
     </div>

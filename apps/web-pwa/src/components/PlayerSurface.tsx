@@ -1,44 +1,34 @@
-/*  PlayerSurface — one <video> per camera with quality-first defaults.        */
+/*  PlayerSurface — one <video> per camera. Stable across layout switches.     */
 /*                                                                              */
-/*  Why this file exists:                                                      */
-/*    The legacy viewer showed green/yellow H.264 artifacts because it          */
-/*    revealed the <video> at `loadeddata` (first frame decoded, but the        */
-/*    sequence header / first I-frame may still be partial). We instead         */
-/*    wait for `canplaythrough` (browser has buffered enough for smooth         */
-/*    decode) before fading in the video element. Until then, a skeleton        */
-/*    shimmer covers the cell.                                                  */
-/*                                                                              */
-/*  Sync model:                                                                 */
-/*    The store owns `segmentRevision`, `seekRevision`, `seekTarget`. Each      */
-/*    PlayerSurface subscribes and:                                             */
-/*      - reloads the src whenever segmentRevision changes                      */
-/*      - seeks to seekTarget whenever seekRevision changes                     */
-/*      - obeys play/pause/rate/mute from the store                             */
-/*    The "primary" surface (auto-picked by the parent) drives currentTime      */
-/*    back into the store via rAF. Slaves correct drift > 0.18s.                */
+/*  Key invariants:                                                             */
+/*    - src is loaded by url + segmentRevision only. isPrimary changes do NOT  */
+/*      reload the video — that was the cause of the layout-switch flicker.    */
+/*    - The "primary" surface drives currentTime via rAF. Switching primary    */
+/*      is a separate effect that doesn't touch el.src.                        */
+/*    - Per-cell mute is controlled by audioCamera + global muted from store.  */
 
 import { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import type { CameraKind, VideoFile } from "../types";
 import { CAMERA_LABEL } from "../types";
 import { usePlayback } from "../stores/playbackStore";
+import { CellControls } from "./CellControls";
+import { caps } from "../utils/capabilities";
 
 interface Props {
   camera: CameraKind;
   video?: VideoFile;
   isPrimary?: boolean;
-  className?: string;
-  onClick?: () => void;
-  focusOutline?: boolean;
+  isFocused?: boolean;
+  onTileFullscreen?: () => void;
 }
 
 export function PlayerSurface({
   camera,
   video,
   isPrimary,
-  className,
-  onClick,
-  focusOutline,
+  isFocused,
+  onTileFullscreen,
 }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [ready, setReady] = useState(false);
@@ -46,17 +36,18 @@ export function PlayerSurface({
 
   const isPlaying = usePlayback(s => s.isPlaying);
   const rate = usePlayback(s => s.rate);
-  const muted = usePlayback(s => s.muted);
+  const globalMuted = usePlayback(s => s.muted);
+  const audioCamera = usePlayback(s => s.audioCamera);
   const segmentRevision = usePlayback(s => s.segmentRevision);
   const seekRevision = usePlayback(s => s.seekRevision);
   const seekTarget = usePlayback(s => s.seekTarget);
 
-  // -----------------------------------------------------------------
-  // Load / unload src when video changes or segment revision bumps.
-  // We additionally wait for a real `requestVideoFrameCallback` (or
-  // `seeked` fallback) to fade in — otherwise the first paint can be
-  // a partially-decoded H.264 P-frame which shows as green/yellow.
-  // -----------------------------------------------------------------
+  const isAudio = !globalMuted && audioCamera === camera;
+
+  /* ------------------------------------------------------------
+   * Load / unload src — runs when the video URL or segment changes.
+   * Crucially does NOT depend on isPrimary anymore.
+   * ------------------------------------------------------------ */
   useEffect(() => {
     const el = videoRef.current;
     if (!el) return;
@@ -70,15 +61,7 @@ export function PlayerSurface({
     el.preload = "auto";
     el.src = video.url;
     el.load();
-    if (isPrimary) {
-      el.setAttribute("fetchpriority", "high");
-    }
 
-    // Wait for the first *clean* rendered frame. Tesla's H.264 clips
-    // routinely paint chroma-only (green-tinted) pixels in the first
-    // ~1.5 seconds — likely because the encoder hadn't stabilised yet.
-    // The fix: force a seek to 2.0s on load and only reveal after the
-    // seeked frame has been painted (rVFC where available).
     let cancelled = false;
     const node = el;
 
@@ -101,7 +84,6 @@ export function PlayerSurface({
         const dur = Number.isFinite(node.duration) ? node.duration : 60;
         const safeTime = Math.min(2.0, Math.max(0, dur - 0.5));
 
-        // Seek and wait for the seeked event
         await new Promise<void>((resolve) => {
           const done = () => { node.removeEventListener("seeked", done); resolve(); };
           node.addEventListener("seeked", done, { once: true });
@@ -109,12 +91,12 @@ export function PlayerSurface({
         });
         if (cancelled) return;
 
-        // Wait for a real frame paint — but race against a timeout so a
-        // hidden tab or headless renderer can't deadlock us.
-        const anyEl = node as unknown as { requestVideoFrameCallback?: (cb: () => void) => number };
+        const anyEl = node as unknown as {
+          requestVideoFrameCallback?: (cb: () => void) => number;
+        };
         await Promise.race([
           new Promise<void>(resolve => {
-            if (typeof anyEl.requestVideoFrameCallback === "function") {
+            if (caps.videoFrameCallback && typeof anyEl.requestVideoFrameCallback === "function") {
               anyEl.requestVideoFrameCallback(() => resolve());
             } else {
               setTimeout(resolve, 100);
@@ -123,12 +105,6 @@ export function PlayerSurface({
           new Promise<void>(resolve => setTimeout(resolve, 400)),
         ]);
         if (cancelled) return;
-
-        // Mirror this position into the shared store so all surfaces stay aligned
-        const store = usePlayback.getState();
-        if (isPrimary) {
-          store.setCurrentTime(safeTime);
-        }
         setReady(true);
       } catch {
         if (!cancelled) setErrored(true);
@@ -136,16 +112,16 @@ export function PlayerSurface({
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [video?.url, segmentRevision, isPrimary]);
+  }, [video?.url, segmentRevision]);
 
-  // -----------------------------------------------------------------
-  // Mirror playback state into the element
-  // -----------------------------------------------------------------
+  /* ------------------------------------------------------------
+   * Mirror per-cell audio. Only one cell at a time is unmuted.
+   * ------------------------------------------------------------ */
   useEffect(() => {
     const el = videoRef.current;
     if (!el) return;
-    el.muted = muted;
-  }, [muted]);
+    el.muted = !isAudio;
+  }, [isAudio]);
 
   useEffect(() => {
     const el = videoRef.current;
@@ -166,10 +142,9 @@ export function PlayerSurface({
     }
   }, [isPlaying, ready]);
 
-  // -----------------------------------------------------------------
-  // External seek requests. Only listens to seekRevision so the
-  // bootstrap-time clean-frame seek isn't undone after `ready` flips.
-  // -----------------------------------------------------------------
+  /* ------------------------------------------------------------
+   * External seek requests.
+   * ------------------------------------------------------------ */
   useEffect(() => {
     const el = videoRef.current;
     if (!el) return;
@@ -182,9 +157,11 @@ export function PlayerSurface({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seekRevision]);
 
-  // -----------------------------------------------------------------
-  // Primary cell drives currentTime/duration up via rAF + sync check
-  // -----------------------------------------------------------------
+  /* ------------------------------------------------------------
+   * Primary cell drives currentTime/duration into the store via rAF.
+   * Promoting/demoting between primary <-> slave is handled by this
+   * effect alone — never touches el.src.
+   * ------------------------------------------------------------ */
   useEffect(() => {
     if (!isPrimary) return;
     const el = videoRef.current;
@@ -208,9 +185,9 @@ export function PlayerSurface({
     };
   }, [isPrimary, segmentRevision]);
 
-  // -----------------------------------------------------------------
-  // Slave drift correction every ~500ms (cheap)
-  // -----------------------------------------------------------------
+  /* ------------------------------------------------------------
+   * Slave drift correction every ~500ms (cheap).
+   * ------------------------------------------------------------ */
   useEffect(() => {
     if (isPrimary) return;
     const el = videoRef.current;
@@ -225,18 +202,20 @@ export function PlayerSurface({
     return () => clearInterval(id);
   }, [isPrimary, ready]);
 
-  // -----------------------------------------------------------------
-  // Render
-  // -----------------------------------------------------------------
+  function handleTileClick() {
+    // Single click = play/pause (the focus toggle now lives in CellControls).
+    usePlayback.getState().setIsPlaying(!usePlayback.getState().isPlaying);
+  }
+
   return (
     <div
+      data-cam-tile={camera}
       className={clsx(
-        "relative overflow-hidden bg-black select-none",
+        "video-tile relative overflow-hidden bg-black select-none",
         "transition-[opacity,box-shadow] duration-200",
-        focusOutline && "ring-2 ring-(--color-accent) z-10",
-        className,
+        isFocused && "ring-2 ring-(--color-accent) z-[1]",
       )}
-      onClick={onClick}
+      onClick={handleTileClick}
     >
       {video ? (
         <>
@@ -265,6 +244,15 @@ export function PlayerSurface({
               <div className="text-xs">Stream error</div>
             </div>
           )}
+
+          <CellControls
+            camera={camera}
+            isFocused={!!isFocused}
+            hasAudio={isAudio}
+            onFullscreen={() => onTileFullscreen?.()}
+            onToggleAudio={() => usePlayback.getState().toggleAudioCamera(camera)}
+            onToggleFocus={() => usePlayback.getState().toggleFocus(camera)}
+          />
         </>
       ) : (
         <div className="absolute inset-0 grid place-items-center text-(--color-text-faint)">

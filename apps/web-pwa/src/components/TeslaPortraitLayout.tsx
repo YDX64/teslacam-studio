@@ -43,6 +43,8 @@ import {
   SpeedIcon,
   VolumeIcon,
 } from "./Icons";
+import { backendAvailable } from "../stores/libraryStore";
+import { enterFullscreen } from "../utils/fullscreen";
 
 type Overlay = null | "library" | "inspector" | "menu" | "events";
 
@@ -52,15 +54,23 @@ export function TeslaPortraitLayout() {
   const bookmarks = useBookmarks();
   const ev = selectedEvent(lib);
   const seg = selectedSegment(lib);
+  const canExport = backendAvailable(lib);
   const [overlay, setOverlay] = useState<Overlay>(null);
 
   if (!ev || !seg) {
     return (
-      <TeslaShell onLibrary={() => setOverlay("library")}>
+      <TeslaShell
+        onLibrary={() => setOverlay("library")}
+        onChangeFolder={() => lib.openPicker()}
+      >
         <div className="flex h-full items-center justify-center text-(--color-text-faint)">
-          <p className="text-xl">Tap “Library” to pick a clip.</p>
+          <p className="text-xl text-center px-6">
+            {lib.source
+              ? "Tap “Library” to pick a clip."
+              : "Tap the folder icon to open a TeslaCam folder."}
+          </p>
         </div>
-        {overlay && <FullScreenOverlay onClose={() => setOverlay(null)}>{renderOverlay(overlay)}</FullScreenOverlay>}
+        {overlay && <SideDrawer side="left" onClose={() => setOverlay(null)}>{renderOverlay(overlay)}</SideDrawer>}
       </TeslaShell>
     );
   }
@@ -75,6 +85,7 @@ export function TeslaPortraitLayout() {
     <TeslaShell
       onLibrary={() => setOverlay("library")}
       onInspector={() => setOverlay("inspector")}
+      onChangeFolder={() => lib.openPicker()}
     >
       {/* Title strip */}
       <div className="glass-strong shrink-0 rounded-3xl px-5 py-4">
@@ -102,7 +113,6 @@ export function TeslaPortraitLayout() {
           camera={front}
           video={seg.cameras[front]}
           isPrimary
-          onClick={() => usePlayback.getState().setIsPlaying(!playback.isPlaying)}
         />
       </div>
 
@@ -194,6 +204,7 @@ export function TeslaPortraitLayout() {
               try { await captureAll(ev.title); usePlayback.getState().setStatus("Snapshots saved"); }
               catch (e) { usePlayback.getState().setStatus(e instanceof Error ? e.message : "Failed"); }
             }}
+            disabled={!canExport}
             icon={<SnapshotIcon className="h-5 w-5" />}
             label="Snapshot"
           />
@@ -208,6 +219,7 @@ export function TeslaPortraitLayout() {
                 usePlayback.getState().setStatus(`Event saved → ${res.path}`);
               } catch (e) { usePlayback.getState().setStatus(e instanceof Error ? e.message : "Failed"); }
             }}
+            disabled={!canExport}
             icon={<ExportIcon className="h-5 w-5" />}
             label="Export"
           />
@@ -218,6 +230,7 @@ export function TeslaPortraitLayout() {
                 usePlayback.getState().setStatus(`Report → ${res.path}`);
               } catch (e) { usePlayback.getState().setStatus(e instanceof Error ? e.message : "Failed"); }
             }}
+            disabled={!canExport}
             icon={<DocIcon className="h-5 w-5" />}
             label="Report"
           />
@@ -226,6 +239,7 @@ export function TeslaPortraitLayout() {
               const url = Object.values(seg.cameras)[0]?.url;
               if (url) api.reveal(decodeURIComponent(url.replace("/media/", ""))).catch(() => {});
             }}
+            disabled={!canExport}
             icon={<FolderIcon className="h-5 w-5" />}
             label="Reveal"
           />
@@ -238,8 +252,8 @@ export function TeslaPortraitLayout() {
           <TeslaSpeedChip />
           <TeslaChip
             onClick={() => {
-              if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {});
-              else document.exitFullscreen?.().catch(() => {});
+              const grid = document.querySelector(".video-grid") as HTMLElement | null;
+              if (grid) void enterFullscreen(grid);
             }}
             icon={<FullscreenIcon className="h-5 w-5" />}
             label="Full"
@@ -261,8 +275,15 @@ export function TeslaPortraitLayout() {
         </div>
       )}
 
-      {/* Overlays */}
-      {overlay && <FullScreenOverlay onClose={() => setOverlay(null)}>{renderOverlay(overlay)}</FullScreenOverlay>}
+      {/* Side drawer — leaves the live video visible on the edge */}
+      {overlay && (
+        <SideDrawer
+          side={overlay === "inspector" ? "right" : "left"}
+          onClose={() => setOverlay(null)}
+        >
+          {renderOverlay(overlay)}
+        </SideDrawer>
+      )}
     </TeslaShell>
   );
 
@@ -283,23 +304,37 @@ export function TeslaPortraitLayout() {
 /* -------------------------------- shell -------------------------------- */
 
 function TeslaShell({
-  children, onLibrary, onInspector,
+  children, onLibrary, onInspector, onChangeFolder,
 }: {
   children: React.ReactNode;
   onLibrary: () => void;
   onInspector?: () => void;
+  onChangeFolder?: () => void;
 }) {
   return (
     <div className="grid h-full w-full grid-rows-[64px_1fr] gap-3 bg-(--color-bg-0) p-3 text-(--color-text)">
       <header className="glass-strong flex items-center justify-between gap-3 rounded-3xl px-5">
-        <button
-          type="button"
-          onClick={onLibrary}
-          className="flex items-center gap-3 rounded-2xl border border-(--color-border) bg-white/[0.04] px-4 py-2.5 text-[15px] font-medium text-(--color-text) transition active:scale-95"
-        >
-          <MenuGlyph className="h-5 w-5" />
-          Library
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onLibrary}
+            className="flex items-center gap-3 rounded-2xl border border-(--color-border) bg-white/[0.04] px-4 py-2.5 text-[15px] font-medium text-(--color-text) transition active:scale-95"
+          >
+            <MenuGlyph className="h-5 w-5" />
+            Library
+          </button>
+          {onChangeFolder && (
+            <button
+              type="button"
+              onClick={onChangeFolder}
+              aria-label="Change folder"
+              title="Change folder"
+              className="grid h-11 w-11 place-items-center rounded-2xl border border-(--color-border) bg-white/[0.04] text-(--color-text-dim) transition active:scale-95"
+            >
+              <FolderIcon className="h-5 w-5" />
+            </button>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <CarIcon className="h-6 w-6 text-(--color-accent)" />
           <span className="text-[16px] font-semibold tracking-wide">TeslaCam Studio</span>
@@ -321,23 +356,54 @@ function TeslaShell({
   );
 }
 
-function FullScreenOverlay({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+/** Drawer that slides from the left or right, leaving the underlying view
+ *  partially visible on the opposite edge — Tesla in-car users keep seeing
+ *  the live video while browsing. */
+function SideDrawer({
+  side, children, onClose,
+}: {
+  side: "left" | "right";
+  children: React.ReactNode;
+  onClose: () => void;
+}) {
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-(--color-bg-0)/95 backdrop-blur-md">
-      <div className="flex items-center justify-between border-b border-(--color-border) px-5 py-3">
-        <span className="text-base font-semibold text-(--color-text)">Browse</span>
-        <button
-          onClick={onClose}
-          className="grid h-12 w-12 place-items-center rounded-2xl border border-(--color-border) bg-white/[0.04] text-(--color-text-dim) transition active:scale-95"
-          aria-label="Close"
-        >
-          <CloseIcon className="h-5 w-5" />
-        </button>
-      </div>
-      <div className="scrollbar-thin flex-1 overflow-y-auto p-3">
-        {children}
-      </div>
-    </div>
+    <>
+      {/* Tap-to-close strip on the opposite edge. Backdrop is intentionally
+          very faint so the underlying video stays vivid. */}
+      <div
+        className={clsx(
+          "fixed inset-y-0 z-40 bg-black/30",
+          side === "left" ? "right-0 left-[80vw]" : "left-0 right-[80vw]",
+        )}
+        onClick={onClose}
+        aria-hidden
+      />
+      <aside
+        className={clsx(
+          "fixed inset-y-0 z-50 flex w-[80vw] flex-col bg-(--color-bg-1)/98 backdrop-blur-xl shadow-(--shadow-pop)",
+          side === "left" ? "left-0 border-r" : "right-0 border-l",
+          "border-(--color-border)",
+        )}
+        role="dialog"
+        aria-modal="false"
+      >
+        <div className="flex items-center justify-between border-b border-(--color-border) px-5 py-3">
+          <span className="text-base font-semibold text-(--color-text)">
+            {side === "left" ? "Library" : "Details"}
+          </span>
+          <button
+            onClick={onClose}
+            className="grid h-12 w-12 place-items-center rounded-2xl border border-(--color-border) bg-white/[0.04] text-(--color-text-dim) transition active:scale-95"
+            aria-label="Close"
+          >
+            <CloseIcon className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="scrollbar-thin flex-1 overflow-y-auto p-3">
+          {children}
+        </div>
+      </aside>
+    </>
   );
 }
 
@@ -363,22 +429,25 @@ function TeslaTransportButton({
 }
 
 function TeslaChip({
-  active, onClick, icon, label,
+  active, onClick, icon, label, disabled,
 }: {
   active?: boolean;
   onClick: () => void;
   icon: React.ReactNode;
   label: string;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       className={clsx(
         "flex h-12 shrink-0 items-center gap-2 rounded-2xl border px-4 text-[14px] font-medium transition active:scale-95 whitespace-nowrap",
         active
           ? "border-(--color-accent)/45 bg-(--color-accent)/18 text-(--color-accent-2)"
           : "border-(--color-border) bg-white/[0.04] text-(--color-text) active:bg-white/[0.10]",
+        disabled && "opacity-40 cursor-not-allowed",
       )}
     >
       {icon}

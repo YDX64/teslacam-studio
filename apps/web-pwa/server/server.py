@@ -3,7 +3,12 @@
 TeslaCam Studio — local backend.
 
 Responsibilities:
- - Scan a configurable TeslaCam root (RecentClips / SavedClips / SentryClips)
+ - Scan a TeslaCam root (RecentClips / SavedClips / SentryClips) that may be
+   set at startup with --root, changed at runtime via POST /api/scan, or left
+   unset (in which case /api/manifest returns an empty manifest).
+ - Suggest likely TeslaCam locations on this machine (GET /api/suggestions),
+   platform-aware: macOS scans /Volumes; Windows scans drive letters; Linux
+   scans /media, /mnt, /run/media.
  - Serve videos with HTTP Range requests (instant seek, no full download)
  - Expose JSON manifests grouped by event/segment with metadata + GPS
  - Accept snapshot uploads from the browser canvas
@@ -22,6 +27,7 @@ import socket
 import socketserver
 import subprocess
 import sys
+import threading
 import urllib.parse
 from base64 import b64decode
 from datetime import datetime
@@ -58,6 +64,72 @@ REASON_LABELS = {
 ROOT_DIR_ENV = "TESLACAM_ROOT"
 DEFAULT_PORT = 8787
 
+# Mutable shared state. The handler reads root from here per request, so
+# POST /api/scan can swap it atomically.
+_state_lock = threading.Lock()
+_state: dict = {"root": None}
+
+
+def _has_tesla_structure(path: Path) -> bool:
+    if not path.is_dir():
+        return False
+    return any((path / sub).exists() for sub in ("RecentClips", "SavedClips", "SentryClips"))
+
+
+def find_suggestions() -> list[str]:
+    """Return a list of candidate TeslaCam directory paths discovered on this
+    machine. Platform-aware. Never hardcodes user-specific paths in the
+    repository; only walks the well-known OS mount points."""
+    candidates: list[Path] = []
+
+    if sys.platform == "darwin":
+        candidates.append(Path.home() / "Downloads" / "TeslaCam")
+        candidates.append(Path.home() / "Movies" / "TeslaCam")
+        vols = Path("/Volumes")
+        if vols.is_dir():
+            try:
+                for vol in vols.iterdir():
+                    candidates.append(vol / "TeslaCam")
+            except OSError:
+                pass
+    elif sys.platform == "win32":
+        candidates.append(Path.home() / "Downloads" / "TeslaCam")
+        candidates.append(Path.home() / "Videos" / "TeslaCam")
+        for letter in "DEFGHIJKLMNOPQRSTUVWXYZ":
+            candidates.append(Path(f"{letter}:\\TeslaCam"))
+            candidates.append(Path(f"{letter}:\\"))
+    else:  # linux, *bsd, etc.
+        candidates.append(Path.home() / "Downloads" / "TeslaCam")
+        candidates.append(Path.home() / "Videos" / "TeslaCam")
+        for base in (Path("/media"), Path("/mnt"), Path("/run/media")):
+            if not base.is_dir():
+                continue
+            try:
+                for one in base.iterdir():
+                    candidates.append(one / "TeslaCam")
+                    if one.is_dir():
+                        try:
+                            for two in one.iterdir():
+                                candidates.append(two / "TeslaCam")
+                        except OSError:
+                            pass
+            except OSError:
+                pass
+
+    seen: set[Path] = set()
+    out: list[str] = []
+    for p in candidates:
+        try:
+            r = p.resolve()
+        except OSError:
+            continue
+        if r in seen:
+            continue
+        seen.add(r)
+        if _has_tesla_structure(r):
+            out.append(str(r))
+    return out
+
 
 # ---------------------------------------------------------------------------
 # Scanner
@@ -68,7 +140,6 @@ def parse_clip_name(name: str):
     if not m:
         return None
     ts_raw, cam_raw = m.groups()
-    # Normalize all separators to '-' so we get 6 numeric parts
     norm = re.sub(r"[_: ]", "-", ts_raw)
     parts = norm.split("-")
     if len(parts) != 6:
@@ -167,7 +238,6 @@ def make_event_from_folder(folder: Path, category: str, base_dir: Path):
 
 
 def scan_recent(base_dir: Path):
-    """RecentClips: flat folder. Group into events when gaps >125s."""
     folder = base_dir / "RecentClips"
     if not folder.exists():
         return []
@@ -206,7 +276,27 @@ def scan_recent(base_dir: Path):
     } for i, g in enumerate(groups)]
 
 
-def scan_root(base_dir: Path):
+def _empty_manifest():
+    return {
+        "root": "",
+        "events": [],
+        "stats": {
+            "saved_count": 0,
+            "sentry_count": 0,
+            "recent_count": 0,
+            "total_minutes": 0,
+        },
+        "generated_at": datetime.now().isoformat(),
+    }
+
+
+def scan_root(base_dir):
+    if base_dir is None:
+        return _empty_manifest()
+    base_dir = Path(base_dir)
+    if not base_dir.is_dir():
+        return _empty_manifest()
+
     events = []
     saved = base_dir / "SavedClips"
     if saved.exists():
@@ -245,7 +335,6 @@ def scan_root(base_dir: Path):
 # ---------------------------------------------------------------------------
 
 def reveal_in_file_manager(path: Path) -> None:
-    """Open a file in the OS file manager — never uses a shell."""
     if not path.exists():
         return
     if sys.platform == "darwin":
@@ -262,7 +351,11 @@ def reveal_in_file_manager(path: Path) -> None:
 
 class TeslaCamHandler(BaseHTTPRequestHandler):
     server_version = "TeslaCamStudio/1.0"
-    base_dir: Path = Path(".")
+
+    @property
+    def base_dir(self):
+        with _state_lock:
+            return _state["root"]
 
     def log_message(self, fmt, *args):
         sys.stderr.write(f"[{self.log_date_time_string()}] {fmt % args}\n")
@@ -295,6 +388,8 @@ class TeslaCamHandler(BaseHTTPRequestHandler):
             return self._json({"error": "bad json"}, status=400)
 
         try:
+            if path == "/api/scan":
+                return self._handle_scan(payload)
             if path == "/api/export/snapshot":
                 return self._handle_snapshot(payload)
             if path == "/api/export/segment":
@@ -310,14 +405,16 @@ class TeslaCamHandler(BaseHTTPRequestHandler):
 
         self._json({"error": "not found"}, status=404)
 
-    # -----------------------------------------------------------------
-
     def _dispatch(self, body: bool):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
 
         if path == "/api/health":
-            return self._json({"ok": True, "root": str(self.base_dir)}, body=body)
+            root = self.base_dir
+            return self._json({"ok": True, "root": str(root) if root else None}, body=body)
+
+        if path == "/api/suggestions":
+            return self._json({"paths": find_suggestions()}, body=body)
 
         if path == "/api/manifest":
             return self._json(scan_root(self.base_dir), body=body)
@@ -341,24 +438,27 @@ class TeslaCamHandler(BaseHTTPRequestHandler):
         if body:
             self.wfile.write(data)
 
+    def _require_root(self) -> Path:
+        root = self.base_dir
+        if not root:
+            raise ValueError("No folder selected. Call /api/scan with a root first.")
+        return Path(root)
+
     def _safe_resolve(self, rel: str) -> Path:
-        target = (self.base_dir / rel).resolve()
-        target.relative_to(self.base_dir.resolve())  # raises if outside
+        root = self._require_root()
+        target = (root / rel).resolve()
+        target.relative_to(root.resolve())  # raises if outside
         return target
 
     def _serve_media(self, rel_path: str, body: bool):
+        if not self.base_dir:
+            self.send_response(404); self._cors(); self.end_headers(); return
         try:
             safe = self._safe_resolve(rel_path)
-        except ValueError:
-            self.send_response(403)
-            self._cors()
-            self.end_headers()
-            return
+        except (ValueError, OSError):
+            self.send_response(403); self._cors(); self.end_headers(); return
         if not safe.is_file():
-            self.send_response(404)
-            self._cors()
-            self.end_headers()
-            return
+            self.send_response(404); self._cors(); self.end_headers(); return
 
         size = safe.stat().st_size
         ctype = "video/mp4"
@@ -414,8 +514,30 @@ class TeslaCamHandler(BaseHTTPRequestHandler):
                     return
 
     # -----------------------------------------------------------------
-    # Export helpers
+    # POST handlers
     # -----------------------------------------------------------------
+
+    def _handle_scan(self, payload):
+        root = payload.get("root")
+        if not isinstance(root, str) or not root.strip():
+            raise ValueError("Missing 'root'")
+        candidate = Path(root).expanduser()
+        try:
+            resolved = candidate.resolve()
+        except OSError as exc:
+            raise ValueError(f"Cannot resolve path: {exc}") from None
+        if not resolved.exists():
+            raise ValueError("Path does not exist")
+        if not resolved.is_dir():
+            raise ValueError("Not a directory")
+        if not _has_tesla_structure(resolved):
+            raise ValueError(
+                "Folder doesn't look like a TeslaCam root "
+                "(no RecentClips, SavedClips, or SentryClips subfolder)"
+            )
+        with _state_lock:
+            _state["root"] = resolved
+        self._json({"ok": True, "root": str(resolved)})
 
     @staticmethod
     def _desktop() -> Path:
@@ -456,12 +578,12 @@ class TeslaCamHandler(BaseHTTPRequestHandler):
         category, folder_name = event_id.split("/", 1)
         if category == "RecentClips":
             return self._export_recent_event(payload)
-        # Validate folder_name only has expected characters
         if not re.match(r"^[A-Za-z0-9._\- ]+$", folder_name):
             raise ValueError("Invalid folder name")
         if category not in {"SavedClips", "SentryClips"}:
             raise ValueError("Invalid category")
-        src = self.base_dir / category / folder_name
+        root = self._require_root()
+        src = root / category / folder_name
         if not src.is_dir():
             raise ValueError("Event folder missing")
 
@@ -482,7 +604,7 @@ class TeslaCamHandler(BaseHTTPRequestHandler):
                 rel = urllib.parse.unquote(rel)
                 try:
                     src = self._safe_resolve(rel)
-                except ValueError:
+                except (ValueError, OSError):
                     continue
                 if src.is_file():
                     shutil.copy2(src, dest / src.name)
@@ -499,7 +621,7 @@ class TeslaCamHandler(BaseHTTPRequestHandler):
             rel = urllib.parse.unquote(rel)
             try:
                 src = self._safe_resolve(rel)
-            except ValueError:
+            except (ValueError, OSError):
                 continue
             if src.is_file():
                 shutil.copy2(src, dest / src.name)
@@ -551,7 +673,7 @@ class TeslaCamHandler(BaseHTTPRequestHandler):
         rel = payload.get("rel_path", "")
         try:
             target = self._safe_resolve(rel)
-        except ValueError:
+        except (ValueError, OSError):
             raise ValueError("Forbidden path") from None
         reveal_in_file_manager(target)
         self._json({"ok": True})
@@ -564,13 +686,6 @@ class TeslaCamHandler(BaseHTTPRequestHandler):
 class ThreadedServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     daemon_threads = True
     allow_reuse_address = True
-
-
-def make_handler(base_dir: Path):
-    class Bound(TeslaCamHandler):
-        pass
-    Bound.base_dir = base_dir
-    return Bound
 
 
 def find_free_port(preferred: int):
@@ -597,24 +712,38 @@ def get_local_ip():
 
 def main():
     parser = argparse.ArgumentParser(description="TeslaCam Studio backend")
-    parser.add_argument("--root", type=Path,
-                        default=Path(os.environ.get(ROOT_DIR_ENV, "/Users/max/Downloads/TeslaCam")),
-                        help="TeslaCam root folder")
+    parser.add_argument(
+        "--root", type=Path, default=None,
+        help="TeslaCam root folder (optional; can be set later via POST /api/scan)",
+    )
     parser.add_argument("--port", type=int, default=int(os.environ.get("PORT", DEFAULT_PORT)))
     parser.add_argument("--host", default="0.0.0.0")
     args = parser.parse_args()
 
-    root = args.root.resolve()
-    if not root.exists():
-        print(f"❌ Root not found: {root}", file=sys.stderr)
-        sys.exit(1)
+    env_root = os.environ.get(ROOT_DIR_ENV)
+    initial_root = args.root or (Path(env_root) if env_root else None)
+
+    if initial_root is not None:
+        try:
+            resolved = initial_root.resolve()
+        except OSError:
+            resolved = None
+        if resolved and resolved.exists() and _has_tesla_structure(resolved):
+            with _state_lock:
+                _state["root"] = resolved
+        else:
+            print(
+                f"⚠  Initial root {initial_root} not usable; starting without a root. "
+                f"Use POST /api/scan to set one.",
+                file=sys.stderr,
+            )
 
     port = find_free_port(args.port)
-    Handler = make_handler(root)
-    httpd = ThreadedServer((args.host, port), Handler)
+    httpd = ThreadedServer((args.host, port), TeslaCamHandler)
     local_ip = get_local_ip()
+    current_root = _state["root"]
     print("\n  🛰  TeslaCam Studio backend\n  ──────────────────────────")
-    print(f"  Root:    {root}")
+    print(f"  Root:    {current_root or '(unset — pick one in the app)'}")
     print(f"  Listen:  http://{args.host}:{port}/")
     print(f"  LAN:     http://{local_ip}:{port}/  ← reachable from Tesla browser on same WiFi")
     print("  Press Ctrl+C to stop\n")

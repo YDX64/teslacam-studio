@@ -11,6 +11,8 @@ interface PlaybackState {
   duration: number;
   rate: number;
   muted: boolean;
+  /** When set, the named camera is the only one that plays audio (others muted). */
+  audioCamera: CameraKind | null;
   layout: LayoutMode;
   render: RenderMode;
   focused: CameraKind | null;
@@ -31,6 +33,8 @@ interface PlaybackState {
   setDuration(d: number): void;
   setRate(r: number): void;
   toggleMute(): void;
+  setAudioCamera(cam: CameraKind | null): void;
+  toggleAudioCamera(cam: CameraKind): void;
   setLayout(l: LayoutMode): void;
   setRender(r: RenderMode): void;
   setFocus(cam: CameraKind | null): void;
@@ -51,6 +55,7 @@ export const usePlayback = create<PlaybackState>((set, get) => ({
   duration: 60,
   rate: 1,
   muted: true,
+  audioCamera: null,
   layout: "studio",
   render: "performance",
   focused: null,
@@ -67,7 +72,21 @@ export const usePlayback = create<PlaybackState>((set, get) => ({
   setCurrentTime(t) { set({ currentTime: t }); },
   setDuration(d) { set({ duration: Math.max(1, d) }); },
   setRate(r) { set({ rate: r }); },
-  toggleMute() { set({ muted: !get().muted }); },
+  toggleMute() {
+    const muted = !get().muted;
+    set({ muted, audioCamera: muted ? null : get().audioCamera });
+  },
+  setAudioCamera(cam) {
+    set({ audioCamera: cam, muted: cam == null });
+  },
+  toggleAudioCamera(cam) {
+    const current = get().audioCamera;
+    if (current === cam) {
+      set({ audioCamera: null, muted: true });
+    } else {
+      set({ audioCamera: cam, muted: false });
+    }
+  },
   setLayout(l) { set({ layout: l }); },
   setRender(r) { set({ render: r }); },
   setFocus(cam) { set({ focused: cam }); },

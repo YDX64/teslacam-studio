@@ -6,6 +6,8 @@ import clsx from "clsx";
 import { Sidebar } from "./components/Sidebar";
 import { EventWorkspace } from "./components/EventWorkspace";
 import { TeslaPortraitLayout } from "./components/TeslaPortraitLayout";
+import { SourcePicker } from "./components/SourcePicker";
+import { FullscreenChrome } from "./components/FullscreenChrome";
 import { useLibrary, selectedSegment } from "./stores/libraryStore";
 import { usePlayback } from "./stores/playbackStore";
 import { camerasInSegment } from "./types";
@@ -13,14 +15,16 @@ import { useViewport } from "./hooks/useViewport";
 import { CarIcon, CloseIcon, InspectorIcon } from "./components/Icons";
 
 export default function App() {
-  const load = useLibrary(s => s.load);
+  const init = useLibrary(s => s.init);
+  const pickerOpen = useLibrary(s => s.pickerOpen);
+  const source = useLibrary(s => s.source);
   const vp = useViewport();
   const sidebarOpen = useUiStore(s => s.sidebarOpen);
   const inspectorOpen = useUiStore(s => s.inspectorOpen);
   const setSidebarOpen = useUiStore(s => s.setSidebarOpen);
   const setInspectorOpen = useUiStore(s => s.setInspectorOpen);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { void init(); }, [init]);
 
   // Adapt drawer state to viewport
   useEffect(() => {
@@ -141,6 +145,8 @@ export default function App() {
           onCloseInspector={() => setInspectorOpen(false)}
         />
       )}
+      {pickerOpen && <SourcePicker required={!source} />}
+      <FullscreenChrome />
     </div>
   );
 }

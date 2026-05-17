@@ -10,8 +10,8 @@ import type {
 
 const BASE = "";  // Vite proxies /api and /media to the Python backend
 
-async function getJson<T>(path: string): Promise<T> {
-  const res = await fetch(BASE + path, { cache: "no-store" });
+async function getJson<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(BASE + path, { cache: "no-store", ...init });
   if (!res.ok) throw new Error(`${path} → HTTP ${res.status}`);
   return res.json() as Promise<T>;
 }
@@ -27,9 +27,35 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
   return data;
 }
 
+export interface HealthResponse {
+  ok: boolean;
+  root: string | null;
+}
+
 export const api = {
-  health(): Promise<{ ok: boolean; root: string }> {
-    return getJson("/api/health");
+  /** Returns true iff the backend is reachable, false otherwise. Never throws. */
+  async ping(timeoutMs = 1200): Promise<boolean> {
+    try {
+      const ctl = new AbortController();
+      const t = setTimeout(() => ctl.abort(), timeoutMs);
+      const res = await fetch(BASE + "/api/health", { cache: "no-store", signal: ctl.signal });
+      clearTimeout(t);
+      return res.ok;
+    } catch {
+      return false;
+    }
+  },
+
+  health(): Promise<HealthResponse> {
+    return getJson<HealthResponse>("/api/health");
+  },
+
+  suggestions(): Promise<{ paths: string[] }> {
+    return getJson("/api/suggestions");
+  },
+
+  scan(root: string): Promise<{ ok: boolean; root: string }> {
+    return postJson("/api/scan", { root });
   },
 
   manifest(): Promise<Manifest> {

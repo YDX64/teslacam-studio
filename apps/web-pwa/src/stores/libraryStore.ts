@@ -1,22 +1,47 @@
 /*  Library store — manages event list, filters, current selection.            */
+/*                                                                              */
+/*  Source-agnostic: the manifest can come from the Python backend or from     */
+/*  the in-browser scanner. Downstream code never branches on source.           */
 
 import { create } from "zustand";
 import type { ClipCategory, ClipEvent, Manifest, Segment } from "../types";
 import { api } from "../api";
+import { scanBrowserSource, type ScanResult } from "../utils/browserScanner";
+import {
+  loadHandle,
+  pushHistory,
+  randomId,
+  readStoredSource,
+  saveHandle,
+  writeStoredSource,
+  type StoredSource,
+} from "../utils/sourceHistory";
+
+export type LibrarySource =
+  | { kind: "backend"; root: string }
+  | { kind: "browser-fsa"; handle: FileSystemDirectoryHandle; label: string; handleId: string }
+  | { kind: "browser-files"; files: FileList; label: string };
 
 interface LibraryState {
   manifest: Manifest | null;
+  source: LibrarySource | null;
   isLoading: boolean;
   error: string | null;
+  pickerOpen: boolean;
 
   search: string;
   category: ClipCategory | "all";
-  selectedDay: string | null;        // "YYYY-MM-DD"
+  selectedDay: string | null;
   selectedEventId: string | null;
   selectedSegmentId: string | null;
 
-  // Actions
-  load(): Promise<void>;
+  init(): Promise<void>;
+  setSource(source: LibrarySource): Promise<void>;
+  clearSource(): void;
+  reload(): Promise<void>;
+  openPicker(): void;
+  closePicker(): void;
+
   setSearch(q: string): void;
   setCategory(c: ClipCategory | "all"): void;
   setDay(day: string | null): void;
@@ -26,36 +51,74 @@ interface LibraryState {
   prevSegment(scope: "event" | "day" | "library", wrap: boolean): boolean;
 }
 
+let currentScan: ScanResult | null = null;
+
 export const useLibrary = create<LibraryState>((set, get) => ({
   manifest: null,
+  source: null,
   isLoading: false,
   error: null,
+  pickerOpen: false,
   search: "",
   category: "all",
   selectedDay: null,
   selectedEventId: null,
   selectedSegmentId: null,
 
-  async load() {
+  async init() {
+    const stored = readStoredSource();
+    if (!stored) {
+      set({ pickerOpen: true });
+      return;
+    }
     set({ isLoading: true, error: null });
     try {
-      const manifest = await api.manifest();
-      set({ manifest, isLoading: false });
-      const { selectedEventId, selectedDay } = get();
-      const filtered = filteredEvents(get());
-      if (!selectedEventId && filtered[0]) {
-        const ev = filtered[0];
-        set({
-          selectedEventId: ev.id,
-          selectedSegmentId: ev.minutes[0]?.id ?? null,
-          selectedDay: selectedDay ?? dayKey(ev.timestamp),
-        });
+      const restored = await restoreSource(stored);
+      if (restored) {
+        await applySource(set, get, restored);
+        set({ pickerOpen: false });
+      } else {
+        set({ isLoading: false, pickerOpen: true });
       }
     } catch (e) {
       const error = e instanceof Error ? e.message : String(e);
-      set({ error, isLoading: false });
+      set({ error, isLoading: false, pickerOpen: true });
     }
   },
+
+  async setSource(source) {
+    set({ isLoading: true, error: null });
+    try {
+      await applySource(set, get, source);
+      set({ pickerOpen: false });
+    } catch (e) {
+      const error = e instanceof Error ? e.message : String(e);
+      set({ error, isLoading: false });
+      throw e;
+    }
+  },
+
+  clearSource() {
+    disposeCurrentScan();
+    set({
+      source: null,
+      manifest: null,
+      selectedEventId: null,
+      selectedSegmentId: null,
+      selectedDay: null,
+      pickerOpen: true,
+    });
+    writeStoredSource(null);
+  },
+
+  async reload() {
+    const s = get().source;
+    if (!s) return;
+    await applySource(set, get, s);
+  },
+
+  openPicker() { set({ pickerOpen: true }); },
+  closePicker() { set({ pickerOpen: false }); },
 
   setSearch(q) { set({ search: q }); },
   setCategory(c) { set({ category: c }); },
@@ -79,13 +142,106 @@ export const useLibrary = create<LibraryState>((set, get) => ({
     set({ selectedEventId: eventId, selectedSegmentId: segmentId });
   },
 
-  nextSegment(scope, wrap) {
-    return moveSegment(get, set, +1, scope, wrap);
-  },
-  prevSegment(scope, wrap) {
-    return moveSegment(get, set, -1, scope, wrap);
-  },
+  nextSegment(scope, wrap) { return moveSegment(get, set, +1, scope, wrap); },
+  prevSegment(scope, wrap) { return moveSegment(get, set, -1, scope, wrap); },
 }));
+
+/* -------------------------- source application -------------------------- */
+
+async function applySource(
+  set: (partial: Partial<LibraryState>) => void,
+  get: () => LibraryState,
+  source: LibrarySource,
+): Promise<void> {
+  disposeCurrentScan();
+  set({ isLoading: true, error: null, source });
+
+  let manifest: Manifest;
+  if (source.kind === "backend") {
+    try {
+      await api.scan(source.root);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      throw new Error(msg);
+    }
+    manifest = await api.manifest();
+    writeStoredSource({ kind: "backend", root: source.root });
+    pushHistory({
+      id: `backend:${source.root}`,
+      kind: "backend",
+      root: source.root,
+      label: source.root,
+      lastUsed: new Date().toISOString(),
+    });
+  } else if (source.kind === "browser-fsa") {
+    currentScan = await scanBrowserSource({ kind: "fsa", handle: source.handle });
+    manifest = currentScan.manifest;
+    await saveHandle(source.handleId, source.handle);
+    writeStoredSource({ kind: "browser-fsa", handleId: source.handleId, label: source.label });
+    pushHistory({
+      id: `fsa:${source.handleId}`,
+      kind: "browser-fsa",
+      label: source.label,
+      lastUsed: new Date().toISOString(),
+    });
+  } else {
+    currentScan = await scanBrowserSource({ kind: "files", files: source.files });
+    manifest = currentScan.manifest;
+    // browser-files sources can't be restored on reload, so don't persist
+    writeStoredSource(null);
+  }
+
+  const firstEvent = manifest.events[0];
+  set({
+    manifest,
+    isLoading: false,
+    error: null,
+    selectedEventId: firstEvent?.id ?? null,
+    selectedSegmentId: firstEvent?.minutes[0]?.id ?? null,
+    selectedDay: firstEvent ? dayKey(firstEvent.timestamp) : null,
+  });
+  void get;  // unused but reserved
+}
+
+async function restoreSource(stored: StoredSource): Promise<LibrarySource | null> {
+  if (stored.kind === "backend") {
+    if (!(await api.ping())) return null;
+    return { kind: "backend", root: stored.root };
+  }
+  // browser-fsa
+  const handle = await loadHandle(stored.handleId);
+  if (!handle) return null;
+  // Re-request read permission. If denied, fall back to picker.
+  const anyHandle = handle as unknown as {
+    requestPermission?: (opts: { mode: "read" | "readwrite" }) => Promise<PermissionState>;
+    queryPermission?: (opts: { mode: "read" | "readwrite" }) => Promise<PermissionState>;
+  };
+  try {
+    const current = (await anyHandle.queryPermission?.({ mode: "read" })) ?? "granted";
+    if (current !== "granted") {
+      const next = await anyHandle.requestPermission?.({ mode: "read" });
+      if (next !== "granted") return null;
+    }
+  } catch {
+    return null;
+  }
+  return { kind: "browser-fsa", handle, label: stored.label, handleId: stored.handleId };
+}
+
+function disposeCurrentScan() {
+  if (currentScan) {
+    try { currentScan.dispose(); } catch { /* ignore */ }
+    currentScan = null;
+  }
+}
+
+/* -------------------------- helpers ------------------------------------ */
+
+export function pickerHelpers() {
+  return {
+    newHandleId: randomId,
+  };
+}
 
 /* ----------------------- selectors (computed) -------------------------- */
 
@@ -131,7 +287,6 @@ function scopedEvents(state: LibraryState, scope: "event" | "day" | "library"): 
     const ev = events.find(e => e.id === state.selectedEventId);
     return ev ? [ev] : [];
   }
-  // day
   const day = state.selectedDay;
   if (!day) return [];
   return events
@@ -144,21 +299,10 @@ export function filteredEvents(state: LibraryState): ClipEvent[] {
   const q = state.search.trim().toLowerCase();
   return events.filter(ev => {
     if (state.category !== "all" && ev.category !== state.category) return false;
-    if (state.selectedDay && dayKey(ev.timestamp) !== state.selectedDay) {
-      // Day filter only applies on the sidebar list — keep the gate but
-      // allow viewing by event selection. We expose two helpers below.
-    }
     if (!q) return true;
     const hay = [
-      ev.title,
-      ev.city,
-      ev.reason_label,
-      ev.reason,
-      ev.folder,
-      ev.timestamp,
-    ]
-      .join(" ")
-      .toLowerCase();
+      ev.title, ev.city, ev.reason_label, ev.reason, ev.folder, ev.timestamp,
+    ].join(" ").toLowerCase();
     return hay.includes(q);
   });
 }
@@ -186,4 +330,9 @@ export function availableDays(state: LibraryState): string[] {
     set.add(dayKey(ev.timestamp));
   }
   return Array.from(set).sort().reverse();
+}
+
+/** True iff exports/snapshots can be sent to a backend. */
+export function backendAvailable(state: LibraryState): boolean {
+  return state.source?.kind === "backend";
 }

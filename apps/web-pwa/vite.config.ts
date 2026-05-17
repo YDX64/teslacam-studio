@@ -51,7 +51,10 @@ export default defineConfig({
     },
   },
   build: {
-    target: 'es2019', // For Tesla Chromium compatibility (older versions)
+    // Older Tesla Model S/X ships Chromium ~79. ES2017 covers async/await
+    // and Object.entries/values without polyfills, while still allowing
+    // modern syntax that Chromium 79 understands.
+    target: 'es2017',
     sourcemap: false,
   },
 })
