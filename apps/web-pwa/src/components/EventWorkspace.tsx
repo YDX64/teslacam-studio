@@ -44,7 +44,9 @@ export function EventWorkspace() {
 
   if (!ev) return <EmptyState />;
 
-  const showInspectorInline = vp.isDesktop && inspectorOpen;
+  // Inspector inline only on truly wide displays (xl, ≥1440px) so a 1024px
+  // laptop doesn't squeeze the video area down to ~380px wide.
+  const showInspectorInline = vp.isWide && inspectorOpen;
 
   return (
     <section className="flex min-h-full flex-col gap-2 sm:gap-3">
@@ -58,7 +60,7 @@ export function EventWorkspace() {
       <div className={clsx(
         "grid min-h-0 flex-1 gap-2 sm:gap-3",
         showInspectorInline
-          ? "lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_360px]"
+          ? "xl:grid-cols-[minmax(0,1fr)_360px] 2xl:grid-cols-[minmax(0,1fr)_400px]"
           : "grid-cols-1",
       )}>
         <div className="flex min-w-0 min-h-0 flex-col gap-2 sm:gap-3">

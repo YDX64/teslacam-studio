@@ -181,6 +181,20 @@
 .video-grid[data-layout="studio"] > [data-cam-tile="right_repeater"] { grid-area: right_repeater; }
 .video-grid[data-layout="studio"] > [data-cam-tile="back"]           { grid-area: back; }
 
+/* Studio without a back camera — collapse the bottom-right empty cell. */
+.video-grid[data-layout="studio"]:not([data-cameras~="back"]) {
+  grid-template-rows: 1fr 1fr;
+  grid-template-areas:
+    "front left_repeater"
+    "front right_repeater";
+}
+/* Studio with only a front camera — stretch front across whole grid. */
+.video-grid[data-layout="studio"][data-cameras="front"] {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+  grid-template-areas: "front";
+}
+
 /* ----- Triptych: three equal columns ----- */
 .video-grid[data-layout="triptych"] {
   grid-template-columns: 1fr 1fr 1fr;
@@ -204,6 +218,14 @@
 .video-grid[data-layout="theater"] > [data-cam-tile="back"]           { grid-area: back; }
 .video-grid[data-layout="theater"] > [data-cam-tile="right_repeater"] { grid-area: right_repeater; }
 
+/* Theater without a back camera — left/right split the bottom row. */
+.video-grid[data-layout="theater"]:not([data-cameras~="back"]) {
+  grid-template-columns: 1fr 1fr;
+  grid-template-areas:
+    "front          front"
+    "left_repeater  right_repeater";
+}
+
 /* ----- Mosaic: 2x2 ----- */
 .video-grid[data-layout="mosaic"] {
   grid-template-columns: 1fr 1fr;
@@ -216,6 +238,13 @@
 .video-grid[data-layout="mosaic"] > [data-cam-tile="left_repeater"]  { grid-area: left_repeater; }
 .video-grid[data-layout="mosaic"] > [data-cam-tile="right_repeater"] { grid-area: right_repeater; }
 .video-grid[data-layout="mosaic"] > [data-cam-tile="back"]           { grid-area: back; }
+
+/* Mosaic with 3 cams (no back): bottom row becomes a single wide cell. */
+.video-grid[data-layout="mosaic"]:not([data-cameras~="back"]) {
+  grid-template-areas:
+    "front           left_repeater"
+    "right_repeater  right_repeater";
+}
 
 /* ----- Focus modes: focused cam fills top, others tile below ----- */
 .video-grid[data-layout="focus"] {

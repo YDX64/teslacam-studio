@@ -155,20 +155,22 @@ export default function App() {
 
 function DesktopLayout() {
   const vp = useViewport();
+  // Sidebar widens on big screens so the event rows don't look starved,
+  // while leaving most of the extra room for the video area. The
+  // workspace itself does not cap max-width — on 4K we want videos big.
+  const sidebarWidth =
+    vp.width >= 2200 ? 380 :
+    vp.width >= 1600 ? 340 :
+    300;
   return (
-    <div className="flex h-full w-full justify-center">
-      {/* Cap content at 1800px so a 4K monitor doesn't stretch tiles to
-          implausible sizes. The grid below still fills width naturally
-          on anything smaller. */}
-      <div className={clsx(
-        "grid h-full w-full max-w-[1800px] gap-3 p-3 grid-rows-[1fr]",
-        vp.isWide ? "grid-cols-[340px_minmax(0,1fr)]" : "grid-cols-[300px_minmax(0,1fr)]",
-      )}>
-        <Sidebar />
-        <main className="min-h-0 min-w-0 overflow-y-auto scrollbar-thin">
-          <EventWorkspace />
-        </main>
-      </div>
+    <div
+      className="grid h-full w-full gap-3 p-3 grid-rows-[1fr]"
+      style={{ gridTemplateColumns: `${sidebarWidth}px minmax(0, 1fr)` }}
+    >
+      <Sidebar />
+      <main className="min-h-0 min-w-0 overflow-y-auto scrollbar-thin">
+        <EventWorkspace />
+      </main>
     </div>
   );
 }
