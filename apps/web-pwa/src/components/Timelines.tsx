@@ -20,7 +20,7 @@ import { BookmarkIcon } from "./Icons";
 
 /* -------------------------------- segment timeline -------------------- */
 
-export function SegmentTimeline() {
+export function SegmentTimeline({ embedded = false }: { embedded?: boolean }) {
   const lib = useLibrary();
   const ev = selectedEvent(lib);
   const sel = selectedSegment(lib);
@@ -32,16 +32,20 @@ export function SegmentTimeline() {
   useEffect(() => {
     if (!ref.current) return;
     const active = ref.current.querySelector<HTMLElement>("[data-active='true']");
-    if (active) {
-      active.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
-    }
-  }, [sel?.id]);
+    if (!active) return;
+    // First segment: scroll to start. Others: center.
+    const isFirst = ev?.minutes[0]?.id === sel?.id;
+    active.scrollIntoView({
+      behavior: "smooth",
+      inline: isFirst ? "start" : "center",
+      block: "nearest",
+    });
+  }, [sel?.id, ev?.minutes]);
 
   if (!ev) return null;
 
-  return (
-    <div className="glass rounded-2xl p-2">
-      <div ref={ref} className="scrollbar-thin flex gap-1.5 overflow-x-auto pb-1">
+  const inner = (
+    <div ref={ref} className="scrollbar-thin flex gap-1.5 overflow-x-auto pb-1">
         {ev.minutes.map(seg => {
           const isActive = sel?.id === seg.id;
           const cams = camerasInSegment(seg);
@@ -97,9 +101,11 @@ export function SegmentTimeline() {
             </button>
           );
         })}
-      </div>
     </div>
   );
+
+  if (embedded) return inner;
+  return <div className="glass rounded-2xl p-2">{inner}</div>;
 }
 
 /* -------------------------------- day timeline ------------------------ */
@@ -110,7 +116,7 @@ const CAT_COLORS: Record<ClipCategory, { from: string; to: string }> = {
   RecentClips: { from: "var(--color-recent)", to: "color-mix(in oklab, var(--color-recent), transparent 60%)" },
 };
 
-export function DayTimeline() {
+export function DayTimeline({ embedded = false }: { embedded?: boolean }) {
   const lib = useLibrary();
   const sel = lib.selectedEventId;
   const day = lib.selectedDay;
@@ -126,8 +132,8 @@ export function DayTimeline() {
 
   const totalMinutes = eventsOfDay.reduce((s, e) => s + e.minute_count, 0);
 
-  return (
-    <div className="glass relative rounded-2xl p-3">
+  const inner = (
+    <>
       {/* Title + legend */}
       <div className="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h3 className="text-[11px] font-semibold uppercase tracking-[2px] text-(--color-text-faint)">
@@ -199,6 +205,43 @@ export function DayTimeline() {
           </div>
         )}
       </div>
+    </>
+  );
+
+  if (embedded) return inner;
+  return <div className="glass relative rounded-2xl p-3">{inner}</div>;
+}
+
+/* -------------------------------- combined ---------------------------- */
+
+/** Single panel: segment chips on top, day timeline below. Saves the
+ *  vertical space of two separate glass panels and visually groups the
+ *  scrubber + overview. */
+export function CombinedTimeline() {
+  const lib = useLibrary();
+  const ev = selectedEvent(lib);
+  const day = lib.selectedDay;
+  const eventsOfDay = useMemo(() => {
+    if (!lib.manifest || !day) return [];
+    return lib.manifest.events.filter(e => e.timestamp.slice(0, 10) === day);
+  }, [lib.manifest, day]);
+
+  const showDay = eventsOfDay.length > 0;
+  if (!ev && !showDay) return null;
+
+  return (
+    <div className="glass rounded-2xl p-2 flex flex-col gap-2">
+      {ev && (
+        <div>
+          <SegmentTimeline embedded />
+        </div>
+      )}
+      {ev && showDay && <div className="h-px bg-(--color-border)" />}
+      {showDay && (
+        <div className="px-1 pb-1">
+          <DayTimeline embedded />
+        </div>
+      )}
     </div>
   );
 }

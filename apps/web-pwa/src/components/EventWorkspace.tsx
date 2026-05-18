@@ -15,7 +15,7 @@ import { EventHeader } from "./EventHeader";
 import { InsightStrip } from "./InsightStrip";
 import { VideoGrid } from "./VideoGrid";
 import { PlaybackControls } from "./PlaybackControls";
-import { DayTimeline, SegmentTimeline } from "./Timelines";
+import { CombinedTimeline } from "./Timelines";
 import { EventInspector } from "./EventInspector";
 import { EmptyState } from "./EmptyState";
 import { CloseIcon } from "./Icons";
@@ -78,13 +78,8 @@ export function EventWorkspace() {
             inspectorOpen={inspectorOpen}
           />
 
-          {/* Segment timeline */}
-          <SegmentTimeline />
-
-          {/* Day timeline only on lg+, takes too much space on smaller screens */}
-          <div className="hidden lg:block">
-            <DayTimeline />
-          </div>
+          {/* Combined segment + day timeline — single panel for compactness */}
+          <CombinedTimeline />
         </div>
 
         {/* Inline inspector for desktop+ */}

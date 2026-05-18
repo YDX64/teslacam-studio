@@ -487,11 +487,25 @@ function Menu({
   icon, label, options,
 }: { icon: React.ReactNode; label: string; options: MenuOption[] }) {
   const [open, setOpen] = useState(false);
+  const [flipUp, setFlipUp] = useState(false);
   const ref = useRefClickAway(() => setOpen(false));
+  const btnRef = useRefSync<HTMLButtonElement | null>(null);
+
+  // When opening, decide whether to flip the menu upward if there's
+  // not enough space below. Roughly: each option ~44px + paddings.
+  useEffect(() => {
+    if (!open || !btnRef.current) return;
+    const btn = btnRef.current;
+    const rect = btn.getBoundingClientRect();
+    const estimatedMenuHeight = options.length * 44 + 16;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    setFlipUp(spaceBelow < estimatedMenuHeight && rect.top > estimatedMenuHeight);
+  }, [open, options.length]);
 
   return (
     <div ref={ref} className="relative">
       <button
+        ref={btnRef}
         type="button"
         onClick={() => setOpen(v => !v)}
         className={clsx(
@@ -503,10 +517,15 @@ function Menu({
       >
         {icon}
         <span>{label}</span>
-        <span className="text-[8px] opacity-60">▾</span>
+        <span className="text-[8px] opacity-60">{flipUp ? "▴" : "▾"}</span>
       </button>
       {open && (
-        <div className="glass-strong absolute right-0 z-30 mt-1.5 min-w-[160px] rounded-xl p-1 shadow-(--shadow-pop)">
+        <div
+          className={clsx(
+            "glass-strong absolute right-0 z-30 min-w-[160px] rounded-xl p-1 shadow-(--shadow-pop)",
+            flipUp ? "bottom-full mb-1.5" : "top-full mt-1.5",
+          )}
+        >
           {options.map(o => (
             <button
               key={o.id}

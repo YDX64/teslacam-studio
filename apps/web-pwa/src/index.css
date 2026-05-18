@@ -167,10 +167,12 @@
   min-height: 0;
 }
 
-/* Modern browsers (container query units): grid takes the smaller of
-   `100%` of wrap width OR `wrap-height × aspect` for its width, plus
-   matching height. This means the natural aspect-ratio of the layout
-   is always honored regardless of the wrap shape. */
+/* Modern browsers (container query units): grid uses a *range* of
+   aspect-ratios. When the wrap's shape falls inside the range, the
+   grid fills the wrap exactly (no whitespace). When the wrap is too
+   wide, the grid clamps to MAX aspect (horizontal whitespace).
+   When the wrap is too tall, the grid clamps to MIN aspect (vertical
+   whitespace). Each layout sets --min-asp and --max-asp below. */
 @supports (width: 1cqh) {
   .video-grid {
     width: auto;
@@ -199,8 +201,9 @@
 }
 @supports (width: 1cqh) {
   .video-grid[data-layout="studio"] {
-    width: min(100cqw, calc(100cqh * 16 / 9));
-    height: min(100cqh, calc(100cqw * 9 / 16));
+    /* aspect range 1.5 → 2.0, ideal 16:9 ≈ 1.78 */
+    width:  min(100cqw, calc(100cqh * 2.0));
+    height: min(100cqh, calc(100cqw / 1.5));
   }
 }
 .video-grid[data-layout="studio"] > [data-cam-tile="front"]          { grid-area: front; }
@@ -218,8 +221,9 @@
 }
 @supports (width: 1cqh) {
   .video-grid[data-layout="studio"]:not([data-cameras~="back"]) {
-    width: min(100cqw, calc(100cqh * 2));
-    height: min(100cqh, calc(100cqw / 2));
+    /* aspect range 1.7 → 2.5, ideal 2.0 */
+    width:  min(100cqw, calc(100cqh * 2.5));
+    height: min(100cqh, calc(100cqw / 1.7));
   }
 }
 /* Studio with only a front camera — stretch front across whole grid. */
@@ -238,8 +242,9 @@
 }
 @supports (width: 1cqh) {
   .video-grid[data-layout="triptych"] {
-    width: min(100cqw, calc(100cqh * 4));
-    height: min(100cqh, calc(100cqw / 4));
+    /* aspect range 3 → 5, ideal 4 */
+    width:  min(100cqw, calc(100cqh * 5));
+    height: min(100cqh, calc(100cqw / 3));
   }
 }
 .video-grid[data-layout="triptych"] > [data-cam-tile="left_repeater"]  { grid-area: left_repeater; }
@@ -261,8 +266,9 @@
 }
 @supports (width: 1cqh) {
   .video-grid[data-layout="theater"] {
-    width: min(100cqw, 100cqh);
-    height: min(100cqh, 100cqw);
+    /* aspect range 0.8 → 1.3, ideal 1.0 */
+    width:  min(100cqw, calc(100cqh * 1.3));
+    height: min(100cqh, calc(100cqw / 0.8));
   }
 }
 .video-grid[data-layout="theater"] > [data-cam-tile="front"]          { grid-area: front; }
@@ -284,8 +290,9 @@
 }
 @supports (width: 1cqh) {
   .video-grid[data-layout="theater"]:not([data-cameras~="back"]) {
-    width: min(100cqw, calc(100cqh * 8 / 9));
-    height: min(100cqh, calc(100cqw * 9 / 8));
+    /* aspect range 0.7 → 1.1, ideal 8/9 ≈ 0.89 */
+    width:  min(100cqw, calc(100cqh * 1.1));
+    height: min(100cqh, calc(100cqw / 0.7));
   }
 }
 
@@ -301,8 +308,9 @@
 }
 @supports (width: 1cqh) {
   .video-grid[data-layout="mosaic"] {
-    width: min(100cqw, calc(100cqh * 4 / 3));
-    height: min(100cqh, calc(100cqw * 3 / 4));
+    /* aspect range 1.1 → 1.6, ideal 4/3 ≈ 1.33 */
+    width:  min(100cqw, calc(100cqh * 1.6));
+    height: min(100cqh, calc(100cqw / 1.1));
   }
 }
 .video-grid[data-layout="mosaic"] > [data-cam-tile="front"]          { grid-area: front; }
@@ -323,8 +331,9 @@
 }
 @supports (width: 1cqh) {
   .video-grid[data-layout="mosaic"]:not([data-cameras~="back"]) {
-    width: min(100cqw, calc(100cqh * 8 / 9));
-    height: min(100cqh, calc(100cqw * 9 / 8));
+    /* aspect range 0.7 → 1.1, ideal 8/9 ≈ 0.89 */
+    width:  min(100cqw, calc(100cqh * 1.1));
+    height: min(100cqh, calc(100cqw / 0.7));
   }
 }
 
@@ -338,8 +347,9 @@
 }
 @supports (width: 1cqh) {
   .video-grid[data-layout="focus"] {
-    width: min(100cqw, 100cqh);
-    height: min(100cqh, 100cqw);
+    /* aspect range 0.8 → 1.3 */
+    width:  min(100cqw, calc(100cqh * 1.3));
+    height: min(100cqh, calc(100cqw / 0.8));
   }
 }
 .video-grid[data-layout="focus"][data-focused="front"] {
