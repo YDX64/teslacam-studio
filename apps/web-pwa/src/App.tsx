@@ -26,6 +26,14 @@ export default function App() {
 
   useEffect(() => { void init(); }, [init]);
 
+  // Mirror touch / Tesla detection onto <body> so CSS rules in index.css
+  // can target it without re-checking capabilities everywhere.
+  useEffect(() => {
+    const touch = vp.isTouch || vp.isTesla
+      || new URLSearchParams(window.location.search).get("touch") === "on";
+    document.body.dataset.touch = touch ? "true" : "false";
+  }, [vp.isTouch, vp.isTesla]);
+
   // Adapt drawer state to viewport
   useEffect(() => {
     if (vp.isDesktop) {

@@ -56,7 +56,7 @@ export function SegmentTimeline() {
                 usePlayback.getState().bumpSegment();
               }}
               className={clsx(
-                "group flex min-w-[72px] flex-col items-center gap-0.5 rounded-xl border px-2 py-1.5 text-[11px] transition",
+                "segment-chip group flex min-w-[72px] flex-col items-center gap-0.5 rounded-xl border px-2 py-1.5 text-[11px] transition",
                 isActive
                   ? "border-transparent bg-gradient-to-br from-(--color-accent) to-(--color-accent-2) text-white shadow-(--shadow-soft)"
                   : "border-(--color-border) bg-white/[0.04] text-(--color-text-dim) hover:border-(--color-border-strong) hover:text-(--color-text)",

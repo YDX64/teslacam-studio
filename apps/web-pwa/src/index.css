@@ -412,3 +412,61 @@
   background: black;
   width: 100vw; height: 100vh;
 }
+
+/* -----------------------------------------------------------------
+   Touch-friendly UI — automatic on (pointer: coarse) devices.
+   Tesla landscape screens, tablets, and phones get larger tap
+   targets without affecting precision mouse usage.
+----------------------------------------------------------------- */
+
+/* Applied either by media query (touch hardware) or by body[data-touch]
+   (UA-detected Tesla, or ?touch=on URL param for testing). */
+@media (pointer: coarse), (hover: none) {
+  .chip-btn  { min-height: 44px; padding-left: 14px; padding-right: 14px; font-size: 13px; }
+  .icon-btn  { min-height: 44px; min-width: 44px; }
+  .primary-btn { height: 56px !important; width: 56px !important; }
+  .menu-btn  { min-height: 44px; padding-left: 14px; padding-right: 14px; }
+  .menu-option { min-height: 44px; font-size: 14px; }
+  .segment-chip { min-height: 60px; min-width: 96px !important; font-size: 12px; }
+  .seek-slider { height: 10px; }
+  .seek-slider::-webkit-slider-thumb,
+  .seek-slider::-moz-range-thumb { width: 24px; height: 24px; }
+}
+body[data-touch="true"] .chip-btn  { min-height: 44px; padding-left: 14px; padding-right: 14px; font-size: 13px; }
+body[data-touch="true"] .icon-btn  { min-height: 44px; min-width: 44px; }
+body[data-touch="true"] .primary-btn { height: 56px !important; width: 56px !important; }
+body[data-touch="true"] .menu-btn  { min-height: 44px; padding-left: 14px; padding-right: 14px; }
+body[data-touch="true"] .menu-option { min-height: 44px; font-size: 14px; }
+body[data-touch="true"] .segment-chip { min-height: 60px; min-width: 96px !important; font-size: 12px; }
+body[data-touch="true"] .seek-slider { height: 10px; }
+body[data-touch="true"] .seek-slider::-webkit-slider-thumb,
+body[data-touch="true"] .seek-slider::-moz-range-thumb { width: 24px; height: 24px; }
+
+/* Horizontal scroll fades — show users when the row scrolls. */
+.scroll-fade {
+  position: relative;
+}
+.scroll-fade::before,
+.scroll-fade::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 24px;
+  pointer-events: none;
+  z-index: 1;
+  transition: opacity 0.15s ease;
+  opacity: 0;
+}
+.scroll-fade::before {
+  left: 0;
+  background: linear-gradient(to right, var(--color-bg-1), transparent);
+}
+.scroll-fade::after {
+  right: 0;
+  background: linear-gradient(to left, var(--color-bg-1), transparent);
+}
+.scroll-fade[data-overflow-start="true"]::before,
+.scroll-fade[data-overflow-end="true"]::after {
+  opacity: 1;
+}

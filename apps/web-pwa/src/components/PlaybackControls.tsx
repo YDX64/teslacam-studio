@@ -132,7 +132,7 @@ export function PlaybackControls({ onToggleInspector, inspectorOpen }: Props) {
 
           <button
             onClick={() => playback.setIsPlaying(!playback.isPlaying)}
-            className="mx-0.5 grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-(--color-accent) to-(--color-accent-2) text-white shadow-[0_6px_18px_var(--color-accent-glow)] transition active:scale-95"
+            className="primary-btn mx-0.5 grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-(--color-accent) to-(--color-accent-2) text-white shadow-[0_6px_18px_var(--color-accent-glow)] transition active:scale-95"
             aria-label={playback.isPlaying ? "Pause" : "Play"}
           >
             {playback.isPlaying ? <PauseIcon className="h-5 w-5" /> : <PlayIcon className="h-5 w-5" />}
@@ -184,8 +184,9 @@ export function PlaybackControls({ onToggleInspector, inspectorOpen }: Props) {
         </span>
       </div>
 
-      {/* Row 2 — secondary actions; horizontal scroll on narrow */}
-      <div className="scrollbar-thin flex items-center gap-1.5 overflow-x-auto pb-0.5">
+      {/* Row 2 — secondary actions. Wraps on touch / narrow screens
+          so users don't have to drag to find a button. */}
+      <div className="flex flex-wrap items-center gap-1.5 pb-0.5">
         {/* Group 1: speed / loop */}
         <Menu
           icon={<SpeedIcon className="h-3.5 w-3.5" />}
@@ -398,7 +399,7 @@ function ChipBtn({
       title={title}
       disabled={loading || disabled}
       className={clsx(
-        "inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] font-medium transition whitespace-nowrap",
+        "chip-btn inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] font-medium transition whitespace-nowrap",
         active
           ? "border-(--color-accent)/40 bg-(--color-accent)/16 text-(--color-accent-2)"
           : "border-(--color-border) bg-white/[0.04] text-(--color-text-dim) hover:border-(--color-border-strong) hover:text-(--color-text)",
@@ -425,7 +426,7 @@ function IconBtn({
       onClick={onClick}
       title={title}
       className={clsx(
-        "inline-grid h-8 w-8 place-items-center rounded-lg text-(--color-text-dim) hover:bg-white/5 hover:text-(--color-text) transition",
+        "icon-btn inline-grid h-8 w-8 place-items-center rounded-lg text-(--color-text-dim) hover:bg-white/5 hover:text-(--color-text) transition",
         className,
       )}
     >
@@ -494,7 +495,7 @@ function Menu({
         type="button"
         onClick={() => setOpen(v => !v)}
         className={clsx(
-          "inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] font-medium transition whitespace-nowrap",
+          "menu-btn inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] font-medium transition whitespace-nowrap",
           open
             ? "border-(--color-accent)/40 bg-(--color-accent)/16 text-(--color-accent-2)"
             : "border-(--color-border) bg-white/[0.04] text-(--color-text-dim) hover:border-(--color-border-strong) hover:text-(--color-text)",
@@ -505,13 +506,13 @@ function Menu({
         <span className="text-[8px] opacity-60">▾</span>
       </button>
       {open && (
-        <div className="glass-strong absolute right-0 z-30 mt-1.5 min-w-[140px] rounded-xl p-1 shadow-(--shadow-pop)">
+        <div className="glass-strong absolute right-0 z-30 mt-1.5 min-w-[160px] rounded-xl p-1 shadow-(--shadow-pop)">
           {options.map(o => (
             <button
               key={o.id}
               onClick={() => { o.onClick(); setOpen(false); }}
               className={clsx(
-                "flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[12px] transition",
+                "menu-option flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[12px] transition",
                 o.active
                   ? "bg-(--color-accent)/16 text-(--color-accent-2)"
                   : "text-(--color-text-dim) hover:bg-white/[0.06] hover:text-(--color-text)",
