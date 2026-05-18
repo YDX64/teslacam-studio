@@ -111,7 +111,10 @@ export function PlaybackControls({ onToggleInspector, inspectorOpen }: Props) {
   }
 
   return (
-    <div className="glass flex flex-col gap-2.5 rounded-2xl p-2.5">
+    /* relative + z-10 hoists the panel above sibling stacking contexts
+       (CombinedTimeline) so dropdown menus opening downward aren't
+       covered by the timeline panel's backdrop-filter layer. */
+    <div className="glass relative z-10 flex flex-col gap-2.5 rounded-2xl p-2.5">
       {/* Row 1 — transport + seek */}
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-1">
@@ -522,7 +525,7 @@ function Menu({
       {open && (
         <div
           className={clsx(
-            "glass-strong absolute right-0 z-30 min-w-[160px] rounded-xl p-1 shadow-(--shadow-pop)",
+            "glass-strong absolute right-0 z-[60] min-w-[160px] rounded-xl p-1 shadow-(--shadow-pop)",
             flipUp ? "bottom-full mb-1.5" : "top-full mt-1.5",
           )}
         >
