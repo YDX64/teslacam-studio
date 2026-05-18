@@ -144,18 +144,38 @@
    switches are pure CSS, so <video> elements never unmount.
 ----------------------------------------------------------------- */
 
+/* The wrap is the container-query root. Each layout sets the grid's
+   aspect-ratio plus a width derived from the wrap's height — that
+   `min()` call is the part that makes the grid shrink correctly when
+   the wrap is wider than the natural aspect (so we don't get a
+   squished 12:1 front camera). Browsers without container query units
+   (Tesla Model S/X Chromium ~79) gracefully fall back to filling the
+   wrap, which is no worse than what we had before. */
+.video-grid-wrap {
+  container-type: size;
+}
+
 .video-grid {
   display: grid;
   gap: 4px;
-  /* Fill the wrap container by default. The wrap is `flex items-center
-     justify-center min-h-0`, and the per-layout container-query rules
-     below trim our width when the parent is very wide relative to its
-     height (so we don't stretch tiles horizontally on ultrawide). */
   width: 100%;
   height: 100%;
   max-width: 100%;
   max-height: 100%;
-  margin: 0 auto;
+  margin: auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Modern browsers (container query units): grid takes the smaller of
+   `100%` of wrap width OR `wrap-height × aspect` for its width, plus
+   matching height. This means the natural aspect-ratio of the layout
+   is always honored regardless of the wrap shape. */
+@supports (width: 1cqh) {
+  .video-grid {
+    width: auto;
+    height: auto;
+  }
 }
 
 
@@ -175,6 +195,13 @@
     "front left_repeater"
     "front right_repeater"
     "front back";
+  aspect-ratio: 16 / 9;
+}
+@supports (width: 1cqh) {
+  .video-grid[data-layout="studio"] {
+    width: min(100cqw, calc(100cqh * 16 / 9));
+    height: min(100cqh, calc(100cqw * 9 / 16));
+  }
 }
 .video-grid[data-layout="studio"] > [data-cam-tile="front"]          { grid-area: front; }
 .video-grid[data-layout="studio"] > [data-cam-tile="left_repeater"]  { grid-area: left_repeater; }
@@ -187,6 +214,13 @@
   grid-template-areas:
     "front left_repeater"
     "front right_repeater";
+  aspect-ratio: 2 / 1;
+}
+@supports (width: 1cqh) {
+  .video-grid[data-layout="studio"]:not([data-cameras~="back"]) {
+    width: min(100cqw, calc(100cqh * 2));
+    height: min(100cqh, calc(100cqw / 2));
+  }
 }
 /* Studio with only a front camera — stretch front across whole grid. */
 .video-grid[data-layout="studio"][data-cameras="front"] {
@@ -200,30 +234,59 @@
   grid-template-columns: 1fr 1fr 1fr;
   grid-template-rows: 1fr;
   grid-template-areas: "left_repeater front right_repeater";
+  aspect-ratio: 4 / 1;
+}
+@supports (width: 1cqh) {
+  .video-grid[data-layout="triptych"] {
+    width: min(100cqw, calc(100cqh * 4));
+    height: min(100cqh, calc(100cqw / 4));
+  }
 }
 .video-grid[data-layout="triptych"] > [data-cam-tile="left_repeater"]  { grid-area: left_repeater; }
 .video-grid[data-layout="triptych"] > [data-cam-tile="front"]          { grid-area: front; }
 .video-grid[data-layout="triptych"] > [data-cam-tile="right_repeater"] { grid-area: right_repeater; }
 
-/* ----- Theater: front fills top, three below ----- */
+/* ----- Theater: front fills top, three below -----
+ * Front spans full width at 4:3 (h = 3w/4); each of the 3 thumbs is
+ * w/3 wide × (w/3)*3/4 = w/4 tall. Total height = 3w/4 + w/4 = w.
+ * Square grid keeps every tile at native 4:3.
+ */
 .video-grid[data-layout="theater"] {
   grid-template-columns: 1fr 1fr 1fr;
   grid-template-rows: 3fr 1fr;
   grid-template-areas:
     "front front front"
     "left_repeater back right_repeater";
+  aspect-ratio: 1 / 1;
+}
+@supports (width: 1cqh) {
+  .video-grid[data-layout="theater"] {
+    width: min(100cqw, 100cqh);
+    height: min(100cqh, 100cqw);
+  }
 }
 .video-grid[data-layout="theater"] > [data-cam-tile="front"]          { grid-area: front; }
 .video-grid[data-layout="theater"] > [data-cam-tile="left_repeater"]  { grid-area: left_repeater; }
 .video-grid[data-layout="theater"] > [data-cam-tile="back"]           { grid-area: back; }
 .video-grid[data-layout="theater"] > [data-cam-tile="right_repeater"] { grid-area: right_repeater; }
 
-/* Theater without a back camera — left/right split the bottom row. */
+/* Theater without a back camera — left/right split the bottom row.
+ * Front 4:3 + 2 bottom thumbs at 4:3 → total H = 3W/4 + 3W/8 = 9W/8.
+ * Aspect 8:9 (just slightly taller than square).
+ */
 .video-grid[data-layout="theater"]:not([data-cameras~="back"]) {
   grid-template-columns: 1fr 1fr;
+  grid-template-rows: 2fr 1fr;
   grid-template-areas:
     "front          front"
     "left_repeater  right_repeater";
+  aspect-ratio: 8 / 9;
+}
+@supports (width: 1cqh) {
+  .video-grid[data-layout="theater"]:not([data-cameras~="back"]) {
+    width: min(100cqw, calc(100cqh * 8 / 9));
+    height: min(100cqh, calc(100cqw * 9 / 8));
+  }
 }
 
 /* ----- Mosaic: 2x2 ----- */
@@ -233,23 +296,51 @@
   grid-template-areas:
     "front left_repeater"
     "right_repeater back";
+  /* 2x2 of 4:3 cells → 4:3 overall. */
+  aspect-ratio: 4 / 3;
+}
+@supports (width: 1cqh) {
+  .video-grid[data-layout="mosaic"] {
+    width: min(100cqw, calc(100cqh * 4 / 3));
+    height: min(100cqh, calc(100cqw * 3 / 4));
+  }
 }
 .video-grid[data-layout="mosaic"] > [data-cam-tile="front"]          { grid-area: front; }
 .video-grid[data-layout="mosaic"] > [data-cam-tile="left_repeater"]  { grid-area: left_repeater; }
 .video-grid[data-layout="mosaic"] > [data-cam-tile="right_repeater"] { grid-area: right_repeater; }
 .video-grid[data-layout="mosaic"] > [data-cam-tile="back"]           { grid-area: back; }
 
-/* Mosaic with 3 cams (no back): bottom row becomes a single wide cell. */
+/* Mosaic with 3 cams (no back): bottom row becomes a single wide cell.
+ * Top: 2 cells W/2 × 3W/8 (4:3 each). Bottom: 1 cell W × 3W/4.
+ * Total H = 3W/8 + 3W/4 = 9W/8. Aspect 8:9.
+ */
 .video-grid[data-layout="mosaic"]:not([data-cameras~="back"]) {
+  grid-template-rows: 1fr 2fr;
   grid-template-areas:
     "front           left_repeater"
     "right_repeater  right_repeater";
+  aspect-ratio: 8 / 9;
+}
+@supports (width: 1cqh) {
+  .video-grid[data-layout="mosaic"]:not([data-cameras~="back"]) {
+    width: min(100cqw, calc(100cqh * 8 / 9));
+    height: min(100cqh, calc(100cqw * 9 / 8));
+  }
 }
 
-/* ----- Focus modes: focused cam fills top, others tile below ----- */
+/* ----- Focus modes: focused cam fills top, others tile below.
+ * Same math as theater with all 4 cams → square grid keeps tiles 4:3.
+ */
 .video-grid[data-layout="focus"] {
   grid-template-columns: 1fr 1fr 1fr;
   grid-template-rows: 3fr 1fr;
+  aspect-ratio: 1 / 1;
+}
+@supports (width: 1cqh) {
+  .video-grid[data-layout="focus"] {
+    width: min(100cqw, 100cqh);
+    height: min(100cqh, 100cqw);
+  }
 }
 .video-grid[data-layout="focus"][data-focused="front"] {
   grid-template-areas:

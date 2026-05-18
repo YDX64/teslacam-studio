@@ -49,7 +49,7 @@ export function EventWorkspace() {
   const showInspectorInline = vp.isWide && inspectorOpen;
 
   return (
-    <section className="flex min-h-full flex-col gap-2 sm:gap-3">
+    <section className="flex h-full min-h-0 flex-col gap-2 sm:gap-3">
       <EventHeader />
 
       {/* Insight strip — only on tablet+ to save vertical space on phones */}
@@ -64,9 +64,11 @@ export function EventWorkspace() {
           : "grid-cols-1",
       )}>
         <div className="flex min-w-0 min-h-0 flex-col gap-2 sm:gap-3">
-          {/* Video grid — wrap centers + clamps via flex/aspect rules.
-              min-h ensures usable size even when the viewport is short. */}
-          <div className="min-h-[300px] flex-1 lg:min-h-[420px] min-w-0">
+          {/* Video grid fills the remaining vertical space. min-h guarantees
+              a usable size even on very short viewports; main's
+              overflow-y-auto provides scroll when that mandatory height
+              plus the controls/timelines exceeds the viewport. */}
+          <div className="min-h-[260px] flex-1 lg:min-h-[360px] min-w-0">
             <VideoGrid key={segmentRevision} segment={seg} />
           </div>
 
