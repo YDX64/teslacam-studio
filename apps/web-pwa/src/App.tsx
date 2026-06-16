@@ -13,6 +13,7 @@ import { usePlayback } from "./stores/playbackStore";
 import { camerasInSegment } from "./types";
 import { useViewport } from "./hooks/useViewport";
 import { CarIcon, CloseIcon, InspectorIcon } from "./components/Icons";
+import { ThemeToggle } from "./components/ThemeToggle";
 
 export default function App() {
   const init = useLibrary(s => s.init);
@@ -228,13 +229,16 @@ function MobileTopBar({ onMenuClick, onInspectorClick }: { onMenuClick: () => vo
         <CarIcon className="h-5 w-5 text-(--color-accent)" />
         <span className="text-[13px] font-semibold">TeslaCam Studio</span>
       </div>
-      <button
-        onClick={onInspectorClick}
-        className="flex items-center gap-2 rounded-xl border border-(--color-border) ov-04 px-2.5 py-1.5 text-[12px] text-(--color-text-dim) hover:text-(--color-text)"
-        aria-label="Toggle inspector"
-      >
-        <InspectorIcon className="h-4 w-4" />
-      </button>
+      <div className="flex items-center gap-2">
+        <ThemeToggle className="h-8 w-8 rounded-xl border border-(--color-border)" />
+        <button
+          onClick={onInspectorClick}
+          className="flex items-center gap-2 rounded-xl border border-(--color-border) ov-04 px-2.5 py-1.5 text-[12px] text-(--color-text-dim) hover:text-(--color-text)"
+          aria-label="Toggle inspector"
+        >
+          <InspectorIcon className="h-4 w-4" />
+        </button>
+      </div>
     </div>
   );
 }

@@ -11,6 +11,20 @@
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <title>TeslaCam Studio</title>
+    <script>
+      (function () {
+        try {
+          var m = localStorage.getItem("tcs-theme") || "system";
+          var dark = m === "dark" || (m !== "light" && window.matchMedia &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches);
+          var d = document.documentElement;
+          d.dataset.theme = dark ? "dark" : "light";
+          d.style.background = dark ? "#0a0d14" : "#e9edf4";
+          var mc = document.querySelector('meta[name="theme-color"]');
+          if (mc) mc.setAttribute("content", dark ? "#0a0d14" : "#e9edf4");
+        } catch (e) { document.documentElement.dataset.theme = "dark"; }
+      })();
+    </script>
     <style>
       /* Custom seek slider — needed because Tailwind can't easily target ::-webkit-slider-thumb */
       .seek-slider {
@@ -96,7 +110,7 @@
         inset: 0;
         background:
           radial-gradient(800px 400px at 50% 50%, rgba(91, 141, 239, 0.18), transparent 70%),
-          #0a0d14;
+          transparent;
       }
       #root:empty::after {
         content: "TeslaCam Studio";
@@ -104,7 +118,7 @@
         inset: 0;
         display: grid;
         place-items: center;
-        color: rgba(255, 255, 255, 0.4);
+        color: #8693a8;
         font: 500 13px/1.4 system-ui, -apple-system, sans-serif;
         letter-spacing: 2px;
         text-transform: uppercase;

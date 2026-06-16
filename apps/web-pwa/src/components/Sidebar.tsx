@@ -21,6 +21,7 @@ import {
   ShieldIcon,
 } from "./Icons";
 import { DatePicker } from "./DatePicker";
+import { ThemeToggle } from "./ThemeToggle";
 import { formatBytes, formatSidebarTime } from "../utils/format";
 import type { ClipCategory, ClipEvent } from "../types";
 import { eventTotalBytes } from "../types";
@@ -52,6 +53,7 @@ export function Sidebar() {
           </div>
         </div>
         <div className="flex items-center gap-1">
+          <ThemeToggle className="h-9 w-9 rounded-xl" />
           <button
             type="button"
             onClick={() => state.openPicker()}

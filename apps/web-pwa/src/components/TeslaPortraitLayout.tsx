@@ -45,6 +45,7 @@ import {
 } from "./Icons";
 import { backendAvailable } from "../stores/libraryStore";
 import { enterFullscreen } from "../utils/fullscreen";
+import { ThemeToggle } from "./ThemeToggle";
 
 type Overlay = null | "library" | "inspector" | "menu" | "events";
 
@@ -339,15 +340,18 @@ function TeslaShell({
           <CarIcon className="h-6 w-6 text-(--color-accent)" />
           <span className="text-[16px] font-semibold tracking-wide">TeslaCam Studio</span>
         </div>
-        {onInspector ? (
-          <button
-            type="button"
-            onClick={onInspector}
-            className="flex items-center gap-2 rounded-2xl border border-(--color-border) ov-04 px-4 py-2.5 text-[15px] font-medium text-(--color-text) transition active:scale-95"
-          >
-            <InspectorIcon className="h-5 w-5" />
-          </button>
-        ) : <span className="w-[60px]" />}
+        <div className="flex items-center gap-2">
+          <ThemeToggle className="h-11 w-11 rounded-2xl border border-(--color-border) ov-04" />
+          {onInspector ? (
+            <button
+              type="button"
+              onClick={onInspector}
+              className="flex items-center gap-2 rounded-2xl border border-(--color-border) ov-04 px-4 py-2.5 text-[15px] font-medium text-(--color-text) transition active:scale-95"
+            >
+              <InspectorIcon className="h-5 w-5" />
+            </button>
+          ) : <span className="w-[60px]" />}
+        </div>
       </header>
       <div className="grid min-h-0 grid-rows-[auto_1fr_auto_auto_auto_auto] gap-3 overflow-hidden">
         {children}
