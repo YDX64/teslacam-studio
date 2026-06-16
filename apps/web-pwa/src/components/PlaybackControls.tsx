@@ -576,17 +576,6 @@ function Menu({
   );
 }
 
-function useRefClickAway(handler: () => void) {
-  const ref = useRefSync<HTMLDivElement | null>(null);
-  useEffect(() => {
-    function onDown(e: MouseEvent) {
-      if (!ref.current?.contains(e.target as Node)) handler();
-    }
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
-  }, [handler]);
-  return ref;
-}
 
 /* -------------------------------- snapshots ---------------------------- */
 
