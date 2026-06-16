@@ -74,7 +74,7 @@ export function DatePicker({ value, onChange, availableDays }: Props) {
           "flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2 text-[12px] transition",
           open
             ? "border-(--color-accent) bg-(--color-accent)/10 text-(--color-text)"
-            : "border-(--color-border) bg-white/[0.04] text-(--color-text-dim) hover:border-(--color-border-strong) hover:text-(--color-text)",
+            : "border-(--color-border) ov-04 text-(--color-text-dim) hover:border-(--color-border-strong) hover:text-(--color-text)",
         )}
         aria-haspopup="dialog"
         aria-expanded={open}
@@ -96,7 +96,7 @@ export function DatePicker({ value, onChange, availableDays }: Props) {
           <div className="flex items-center justify-between gap-1 pb-2">
             <button
               onClick={() => setViewMonth(addMonths(viewMonth, -1))}
-              className="grid h-7 w-7 place-items-center rounded-lg text-(--color-text-dim) hover:bg-white/10 hover:text-(--color-text)"
+              className="grid h-7 w-7 place-items-center rounded-lg text-(--color-text-dim) hover:ov-10 hover:text-(--color-text)"
               aria-label="Previous month"
             >
               <ChevronLeftIcon className="h-3.5 w-3.5" />
@@ -111,7 +111,7 @@ export function DatePicker({ value, onChange, availableDays }: Props) {
             </div>
             <button
               onClick={() => setViewMonth(addMonths(viewMonth, 1))}
-              className="grid h-7 w-7 place-items-center rounded-lg text-(--color-text-dim) hover:bg-white/10 hover:text-(--color-text)"
+              className="grid h-7 w-7 place-items-center rounded-lg text-(--color-text-dim) hover:ov-10 hover:text-(--color-text)"
               aria-label="Next month"
             >
               <ChevronRightIcon className="h-3.5 w-3.5" />
@@ -148,7 +148,7 @@ export function DatePicker({ value, onChange, availableDays }: Props) {
                     isSelected
                       ? "bg-gradient-to-br from-(--color-accent) to-(--color-accent-2) text-white shadow-[0_4px_12px_rgba(91,141,239,0.45)]"
                       : isAvailable
-                      ? "text-(--color-text) hover:bg-white/10"
+                      ? "text-(--color-text) hover:ov-10"
                       : "text-(--color-text-faint)/40 cursor-not-allowed",
                   )}
                 >
@@ -169,7 +169,7 @@ export function DatePicker({ value, onChange, availableDays }: Props) {
             <button
               type="button"
               onClick={() => { onChange(null); setOpen(false); }}
-              className="rounded-lg px-2 py-1 text-[11px] text-(--color-text-dim) hover:bg-white/5 hover:text-(--color-text)"
+              className="rounded-lg px-2 py-1 text-[11px] text-(--color-text-dim) hover:ov-05 hover:text-(--color-text)"
             >
               All days
             </button>

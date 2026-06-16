@@ -183,7 +183,7 @@ export function PlaybackControls({ onToggleInspector, inspectorOpen }: Props) {
           {formatTime(total)}
         </span>
 
-        <span className="rounded-md bg-white/[0.05] px-1.5 py-1 font-mono text-[11px] tabular-nums text-(--color-text-dim) whitespace-nowrap">
+        <span className="rounded-md ov-05 px-1.5 py-1 font-mono text-[11px] tabular-nums text-(--color-text-dim) whitespace-nowrap">
           {minuteIdx >= 0 ? minuteIdx + 1 : "—"}/{minuteTotal}
         </span>
       </div>
@@ -224,7 +224,7 @@ export function PlaybackControls({ onToggleInspector, inspectorOpen }: Props) {
           <>
             <button
               onClick={playback.clearRange}
-              className="grid h-7 w-7 place-items-center rounded-full text-(--color-text-faint) hover:bg-white/5 hover:text-(--color-text)"
+              className="grid h-7 w-7 place-items-center rounded-full text-(--color-text-faint) hover:ov-05 hover:text-(--color-text)"
               title="Clear range"
             >
               <CloseIcon className="h-3.5 w-3.5" />
@@ -406,7 +406,7 @@ function ChipBtn({
         "chip-btn inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] font-medium transition whitespace-nowrap",
         active
           ? "border-(--color-accent)/40 bg-(--color-accent)/16 text-(--color-accent-2)"
-          : "border-(--color-border) bg-white/[0.04] text-(--color-text-dim) hover:border-(--color-border-strong) hover:text-(--color-text)",
+          : "border-(--color-border) ov-04 text-(--color-text-dim) hover:border-(--color-border-strong) hover:text-(--color-text)",
         loading && "opacity-60 cursor-wait",
         disabled && !loading && "opacity-40 cursor-not-allowed",
       )}
@@ -430,7 +430,7 @@ function IconBtn({
       onClick={onClick}
       title={title}
       className={clsx(
-        "icon-btn inline-grid h-8 w-8 place-items-center rounded-lg text-(--color-text-dim) hover:bg-white/5 hover:text-(--color-text) transition",
+        "icon-btn inline-grid h-8 w-8 place-items-center rounded-lg text-(--color-text-dim) hover:ov-05 hover:text-(--color-text) transition",
         className,
       )}
     >
@@ -541,7 +541,7 @@ function Menu({
           "menu-btn inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] font-medium transition whitespace-nowrap",
           open
             ? "border-(--color-accent)/40 bg-(--color-accent)/16 text-(--color-accent-2)"
-            : "border-(--color-border) bg-white/[0.04] text-(--color-text-dim) hover:border-(--color-border-strong) hover:text-(--color-text)",
+            : "border-(--color-border) ov-04 text-(--color-text-dim) hover:border-(--color-border-strong) hover:text-(--color-text)",
         )}
       >
         {icon}
@@ -562,7 +562,7 @@ function Menu({
                 "menu-option flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[12px] transition",
                 o.active
                   ? "bg-(--color-accent)/16 text-(--color-accent-2)"
-                  : "text-(--color-text-dim) hover:bg-white/[0.06] hover:text-(--color-text)",
+                  : "text-(--color-text-dim) hover:ov-06 hover:text-(--color-text)",
               )}
             >
               {o.icon}

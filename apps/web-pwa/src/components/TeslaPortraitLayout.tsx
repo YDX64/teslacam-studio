@@ -318,7 +318,7 @@ function TeslaShell({
           <button
             type="button"
             onClick={onLibrary}
-            className="flex items-center gap-3 rounded-2xl border border-(--color-border) bg-white/[0.04] px-4 py-2.5 text-[15px] font-medium text-(--color-text) transition active:scale-95"
+            className="flex items-center gap-3 rounded-2xl border border-(--color-border) ov-04 px-4 py-2.5 text-[15px] font-medium text-(--color-text) transition active:scale-95"
           >
             <MenuGlyph className="h-5 w-5" />
             Library
@@ -329,7 +329,7 @@ function TeslaShell({
               onClick={onChangeFolder}
               aria-label="Change folder"
               title="Change folder"
-              className="grid h-11 w-11 place-items-center rounded-2xl border border-(--color-border) bg-white/[0.04] text-(--color-text-dim) transition active:scale-95"
+              className="grid h-11 w-11 place-items-center rounded-2xl border border-(--color-border) ov-04 text-(--color-text-dim) transition active:scale-95"
             >
               <FolderIcon className="h-5 w-5" />
             </button>
@@ -343,7 +343,7 @@ function TeslaShell({
           <button
             type="button"
             onClick={onInspector}
-            className="flex items-center gap-2 rounded-2xl border border-(--color-border) bg-white/[0.04] px-4 py-2.5 text-[15px] font-medium text-(--color-text) transition active:scale-95"
+            className="flex items-center gap-2 rounded-2xl border border-(--color-border) ov-04 px-4 py-2.5 text-[15px] font-medium text-(--color-text) transition active:scale-95"
           >
             <InspectorIcon className="h-5 w-5" />
           </button>
@@ -393,7 +393,7 @@ function SideDrawer({
           </span>
           <button
             onClick={onClose}
-            className="grid h-12 w-12 place-items-center rounded-2xl border border-(--color-border) bg-white/[0.04] text-(--color-text-dim) transition active:scale-95"
+            className="grid h-12 w-12 place-items-center rounded-2xl border border-(--color-border) ov-04 text-(--color-text-dim) transition active:scale-95"
             aria-label="Close"
           >
             <CloseIcon className="h-5 w-5" />
@@ -421,7 +421,7 @@ function TeslaTransportButton({
       type="button"
       onClick={onClick}
       aria-label={ariaLabel}
-      className="grid h-12 w-12 place-items-center rounded-2xl border border-(--color-border) bg-white/[0.04] text-(--color-text-dim) transition active:scale-95 active:bg-white/[0.10]"
+      className="grid h-12 w-12 place-items-center rounded-2xl border border-(--color-border) ov-04 text-(--color-text-dim) transition active:scale-95 active:ov-10"
     >
       {children}
     </button>
@@ -446,7 +446,7 @@ function TeslaChip({
         "flex h-12 shrink-0 items-center gap-2 rounded-2xl border px-4 text-[14px] font-medium transition active:scale-95 whitespace-nowrap",
         active
           ? "border-(--color-accent)/45 bg-(--color-accent)/18 text-(--color-accent-2)"
-          : "border-(--color-border) bg-white/[0.04] text-(--color-text) active:bg-white/[0.10]",
+          : "border-(--color-border) ov-04 text-(--color-text) active:ov-10",
         disabled && "opacity-40 cursor-not-allowed",
       )}
     >
@@ -494,7 +494,7 @@ function TeslaSegmentTimeline() {
                 "flex h-16 min-w-[88px] shrink-0 flex-col items-center justify-center gap-0.5 rounded-2xl border text-sm transition active:scale-95",
                 isActive
                   ? "border-transparent bg-gradient-to-br from-(--color-accent) to-(--color-accent-2) text-white"
-                  : "border-(--color-border) bg-white/[0.04] text-(--color-text-dim)",
+                  : "border-(--color-border) ov-04 text-(--color-text-dim)",
               )}
             >
               <span className="font-mono tabular-nums">

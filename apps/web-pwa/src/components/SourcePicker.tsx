@@ -207,9 +207,9 @@ export function SourcePicker({ onClose, required = false }: Props) {
               </h2>
               <p className="mt-1 text-[12px] leading-relaxed text-(--color-text-dim)">
                 Point TeslaCam Studio at a folder containing
-                {" "}<code className="rounded bg-white/[0.06] px-1 py-0.5 text-[11px]">RecentClips</code>,
-                {" "}<code className="rounded bg-white/[0.06] px-1 py-0.5 text-[11px]">SavedClips</code>,
-                {" or "}<code className="rounded bg-white/[0.06] px-1 py-0.5 text-[11px]">SentryClips</code>.
+                {" "}<code className="rounded ov-06 px-1 py-0.5 text-[11px]">RecentClips</code>,
+                {" "}<code className="rounded ov-06 px-1 py-0.5 text-[11px]">SavedClips</code>,
+                {" or "}<code className="rounded ov-06 px-1 py-0.5 text-[11px]">SentryClips</code>.
               </p>
             </div>
           </div>
@@ -217,7 +217,7 @@ export function SourcePicker({ onClose, required = false }: Props) {
             <button
               type="button"
               onClick={close}
-              className="grid h-9 w-9 place-items-center rounded-xl text-(--color-text-dim) transition hover:bg-white/5 hover:text-(--color-text)"
+              className="grid h-9 w-9 place-items-center rounded-xl text-(--color-text-dim) transition hover:ov-05 hover:text-(--color-text)"
               aria-label="Close"
             >
               <CloseIcon className="h-4 w-4" />
@@ -265,13 +265,13 @@ export function SourcePicker({ onClose, required = false }: Props) {
                   onKeyDown={e => { if (e.key === "Enter") void submitPath(); }}
                   placeholder="/path/to/TeslaCam"
                   spellCheck={false}
-                  className="w-full rounded-xl border border-(--color-border) bg-white/[0.04] px-3 py-2.5 text-[13px] font-mono text-(--color-text) outline-none transition placeholder:text-(--color-text-faint) focus:border-(--color-accent) focus:bg-(--color-accent)/10"
+                  className="w-full rounded-xl border border-(--color-border) ov-04 px-3 py-2.5 text-[13px] font-mono text-(--color-text) outline-none transition placeholder:text-(--color-text-faint) focus:border-(--color-accent) focus:bg-(--color-accent)/10"
                 />
                 <button
                   type="button"
                   onClick={() => void submitPath()}
                   disabled={!pathInput.trim() || busy != null}
-                  className="rounded-xl border border-(--color-border) bg-white/[0.06] px-4 py-2.5 text-[13px] font-medium text-(--color-text) transition hover:border-(--color-border-strong) hover:bg-white/[0.1] disabled:opacity-50"
+                  className="rounded-xl border border-(--color-border) ov-06 px-4 py-2.5 text-[13px] font-medium text-(--color-text) transition hover:border-(--color-border-strong) hover:ov-10 disabled:opacity-50"
                 >
                   {busy === `backend:${pathInput.trim()}` ? "Scanning…" : "Scan"}
                 </button>
@@ -293,7 +293,7 @@ export function SourcePicker({ onClose, required = false }: Props) {
                       onClick={() => void applyBackend(s)}
                       disabled={busy != null}
                       className={clsx(
-                        "flex w-full items-center justify-between gap-2 rounded-xl border border-(--color-border) bg-white/[0.03] px-3 py-2 text-left text-[12px] font-mono text-(--color-text-dim) transition hover:border-(--color-border-strong) hover:bg-white/[0.06] hover:text-(--color-text)",
+                        "flex w-full items-center justify-between gap-2 rounded-xl border border-(--color-border) ov-03 px-3 py-2 text-left text-[12px] font-mono text-(--color-text-dim) transition hover:border-(--color-border-strong) hover:ov-06 hover:text-(--color-text)",
                         busy === `backend:${s}` && "opacity-60",
                       )}
                     >
@@ -320,7 +320,7 @@ export function SourcePicker({ onClose, required = false }: Props) {
                       onClick={() => void applyRecent(entry)}
                       disabled={busy != null}
                       className={clsx(
-                        "flex flex-1 items-center justify-between gap-2 rounded-xl border border-(--color-border) bg-white/[0.03] px-3 py-2 text-left text-[12px] text-(--color-text-dim) transition hover:border-(--color-border-strong) hover:bg-white/[0.06] hover:text-(--color-text)",
+                        "flex flex-1 items-center justify-between gap-2 rounded-xl border border-(--color-border) ov-03 px-3 py-2 text-left text-[12px] text-(--color-text-dim) transition hover:border-(--color-border-strong) hover:ov-06 hover:text-(--color-text)",
                         busy === entry.id && "opacity-60",
                       )}
                     >
@@ -338,7 +338,7 @@ export function SourcePicker({ onClose, required = false }: Props) {
                         removeFromHistory(entry.id);
                         setHistory(readHistory());
                       }}
-                      className="grid h-8 w-8 place-items-center rounded-lg text-(--color-text-faint) transition hover:bg-white/5 hover:text-(--color-text)"
+                      className="grid h-8 w-8 place-items-center rounded-lg text-(--color-text-faint) transition hover:ov-05 hover:text-(--color-text)"
                       aria-label="Forget this folder"
                       title="Forget"
                     >
@@ -351,7 +351,7 @@ export function SourcePicker({ onClose, required = false }: Props) {
           )}
 
           {noOptions && (
-            <div className="rounded-xl border border-(--color-border) bg-white/[0.03] p-4 text-center text-[12px] text-(--color-text-dim)">
+            <div className="rounded-xl border border-(--color-border) ov-03 p-4 text-center text-[12px] text-(--color-text-dim)">
               This browser can't open files directly and no backend is reachable.
               Run the included Python server on a machine on your network.
             </div>
@@ -386,7 +386,7 @@ export function SourcePicker({ onClose, required = false }: Props) {
                 }
               }}
               disabled={busy != null}
-              className="inline-flex items-center gap-1.5 rounded-full border border-(--color-border) bg-white/[0.04] px-3 py-1.5 text-[11px] font-medium text-(--color-text-dim) transition hover:border-(--color-border-strong) hover:text-(--color-text) disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-full border border-(--color-border) ov-04 px-3 py-1.5 text-[11px] font-medium text-(--color-text-dim) transition hover:border-(--color-border-strong) hover:text-(--color-text) disabled:opacity-50"
             >
               <RefreshIcon className={clsx("h-3.5 w-3.5", busy === "refresh" && "animate-spin")} />
               Refresh
@@ -409,9 +409,9 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="flex flex-col gap-2 rounded-2xl border border-(--color-border) bg-white/[0.02] p-3 sm:p-4">
+    <section className="flex flex-col gap-2 rounded-2xl border border-(--color-border) ov-02 p-3 sm:p-4">
       <header className="flex items-center gap-2">
-        <span className="grid h-7 w-7 place-items-center rounded-lg bg-white/[0.06] text-(--color-text-dim)">
+        <span className="grid h-7 w-7 place-items-center rounded-lg ov-06 text-(--color-text-dim)">
           {icon}
         </span>
         <div className="flex-1">

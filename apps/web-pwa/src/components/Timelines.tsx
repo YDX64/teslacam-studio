@@ -63,7 +63,7 @@ export function SegmentTimeline({ embedded = false }: { embedded?: boolean }) {
                 "segment-chip group flex min-w-[72px] flex-col items-center gap-0.5 rounded-xl border px-2 py-1.5 text-[11px] transition",
                 isActive
                   ? "border-transparent bg-gradient-to-br from-(--color-accent) to-(--color-accent-2) text-white shadow-(--shadow-soft)"
-                  : "border-(--color-border) bg-white/[0.04] text-(--color-text-dim) hover:border-(--color-border-strong) hover:text-(--color-text)",
+                  : "border-(--color-border) ov-04 text-(--color-text-dim) hover:border-(--color-border-strong) hover:text-(--color-text)",
               )}
             >
               <span className="font-mono tabular-nums">
@@ -80,7 +80,7 @@ export function SegmentTimeline({ embedded = false }: { embedded?: boolean }) {
                   className={clsx(
                     "h-full transition-all",
                     isActive
-                      ? "bg-white/80"
+                      ? "bg-(--color-text)"
                       : coverage === 1
                       ? "bg-(--color-success)"
                       : coverage >= 0.5
@@ -160,7 +160,7 @@ export function DayTimeline({ embedded = false }: { embedded?: boolean }) {
         {Array.from({ length: 25 }, (_, i) => i).map(h => (
           <span
             key={h}
-            className="absolute top-0 h-full w-px bg-white/[0.04]"
+            className="absolute top-0 h-full w-px ov-04"
             style={{ left: `${(h / 24) * 100}%` }}
           />
         ))}
@@ -282,7 +282,7 @@ function EventBlock({
       className={clsx(
         "absolute top-1 bottom-1 rounded-md transition-all hover:brightness-125",
         isActive
-          ? "z-10 ring-2 ring-white shadow-[0_0_12px_rgba(255,255,255,0.45)]"
+          ? "z-10 ring-2 ring-(--color-accent) shadow-[0_0_12px_var(--color-accent-glow)]"
           : "opacity-85 hover:opacity-100",
       )}
       style={{
@@ -294,7 +294,7 @@ function EventBlock({
       title={`${event.title} (${event.minute_count}m)`}
     >
       {isBookmarked && (
-        <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 grid h-3 w-3 place-items-center rounded-full bg-white text-[8px] text-black shadow-sm">
+        <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 grid h-3 w-3 place-items-center rounded-full bg-(--color-saved) text-[8px] text-white shadow-sm">
           ★
         </span>
       )}

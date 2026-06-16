@@ -45,7 +45,7 @@ export function EmptyState() {
         {hasSource && (
           <button
             onClick={() => void reload()}
-            className="inline-flex items-center gap-2 rounded-full border border-(--color-border) bg-white/[0.04] px-4 py-2 text-[13px] text-(--color-text-dim) transition hover:border-(--color-border-strong) hover:text-(--color-text)"
+            className="inline-flex items-center gap-2 rounded-full border border-(--color-border) ov-04 px-4 py-2 text-[13px] text-(--color-text-dim) transition hover:border-(--color-border-strong) hover:text-(--color-text)"
           >
             <RefreshIcon className="h-4 w-4" /> Re-scan
           </button>

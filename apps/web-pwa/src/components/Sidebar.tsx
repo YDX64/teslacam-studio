@@ -56,7 +56,7 @@ export function Sidebar() {
             type="button"
             onClick={() => state.openPicker()}
             title="Change folder"
-            className="grid h-9 w-9 place-items-center rounded-xl text-(--color-text-dim) transition hover:bg-white/5 hover:text-(--color-text)"
+            className="grid h-9 w-9 place-items-center rounded-xl text-(--color-text-dim) transition hover:ov-05 hover:text-(--color-text)"
           >
             <FolderIcon className="h-4 w-4" />
           </button>
@@ -64,7 +64,7 @@ export function Sidebar() {
             type="button"
             onClick={() => state.reload()}
             title="Re-scan folder"
-            className="grid h-9 w-9 place-items-center rounded-xl text-(--color-text-dim) transition hover:bg-white/5 hover:text-(--color-text)"
+            className="grid h-9 w-9 place-items-center rounded-xl text-(--color-text-dim) transition hover:ov-05 hover:text-(--color-text)"
           >
             <RefreshIcon className={clsx("h-4 w-4", state.isLoading && "animate-spin")} />
           </button>
@@ -80,7 +80,7 @@ export function Sidebar() {
           placeholder="Search city, reason, date…"
           value={state.search}
           onChange={e => state.setSearch(e.target.value)}
-          className="w-full rounded-xl border border-(--color-border) bg-white/[0.04] py-2 pl-9 pr-3 text-sm text-(--color-text) outline-none transition placeholder:text-(--color-text-faint) focus:border-(--color-accent) focus:bg-(--color-accent)/10"
+          className="w-full rounded-xl border border-(--color-border) ov-04 py-2 pl-9 pr-3 text-sm text-(--color-text) outline-none transition placeholder:text-(--color-text-faint) focus:border-(--color-accent) focus:bg-(--color-accent)/10"
         />
       </div>
 
@@ -94,7 +94,7 @@ export function Sidebar() {
               "shrink-0 rounded-full border px-3 py-1 text-[12px] font-medium transition",
               state.category === c.id
                 ? "border-transparent bg-gradient-to-br from-(--color-accent) to-(--color-accent-2) text-white shadow-[0_4px_12px_rgba(91,141,239,0.35)]"
-                : "border-(--color-border) bg-white/[0.04] text-(--color-text-dim) hover:border-(--color-border-strong) hover:text-(--color-text)",
+                : "border-(--color-border) ov-04 text-(--color-text-dim) hover:border-(--color-border-strong) hover:text-(--color-text)",
             )}
           >
             {c.label}
@@ -197,7 +197,7 @@ function EventRow({
           "group grid w-full grid-cols-[36px_1fr_auto] items-start gap-2 rounded-xl border px-2.5 py-2 text-left transition",
           isActive
             ? "border-(--color-accent)/40 bg-gradient-to-br from-(--color-accent)/20 to-(--color-accent-2)/10 shadow-(--shadow-soft)"
-            : "border-transparent hover:border-(--color-border) hover:bg-white/[0.04]",
+            : "border-transparent hover:border-(--color-border) hover:ov-04",
         )}
       >
         <CategoryBadge event={event} />
@@ -213,7 +213,7 @@ function EventRow({
           </div>
         </div>
         <div className="flex flex-col items-end justify-center gap-0.5 text-[10px] tabular-nums text-(--color-text-faint)">
-          <span className="rounded-md bg-white/[0.05] px-1.5 py-0.5 text-(--color-text-dim)">
+          <span className="rounded-md ov-05 px-1.5 py-0.5 text-(--color-text-dim)">
             {event.minute_count}m
           </span>
           <span>{formatBytes(bytes)}</span>

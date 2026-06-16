@@ -45,7 +45,7 @@ export function EventHeader() {
 function Badge({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <span className={clsx(
-      "rounded-full border border-(--color-border) bg-white/[0.04] px-2 py-0.5 text-(--color-text-dim) whitespace-nowrap",
+      "rounded-full border border-(--color-border) ov-04 px-2 py-0.5 text-(--color-text-dim) whitespace-nowrap",
       className,
     )}>
       {children}

@@ -121,7 +121,7 @@ function InspectorOverlay({
           <span className="text-[13px] font-semibold">Details</span>
           <button
             onClick={onClose}
-            className="grid h-8 w-8 place-items-center rounded-lg text-(--color-text-dim) hover:bg-white/5 hover:text-(--color-text)"
+            className="grid h-8 w-8 place-items-center rounded-lg text-(--color-text-dim) hover:ov-05 hover:text-(--color-text)"
             aria-label="Close"
           >
             <CloseIcon className="h-4 w-4" />

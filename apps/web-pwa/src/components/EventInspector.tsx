@@ -136,7 +136,7 @@ function CoverageCard({ event }: { event: ClipEvent }) {
         return (
           <div key={cam} className="grid grid-cols-[70px_1fr_50px] items-center gap-2">
             <span className="text-(--color-text-dim)">{CAMERA_LABEL[cam]}</span>
-            <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
+            <div className="h-1.5 overflow-hidden rounded-full ov-06">
               <div
                 className="h-full bg-gradient-to-r from-(--color-accent) to-(--color-accent-2) transition-all"
                 style={{ width: `${pct}%` }}
@@ -171,7 +171,7 @@ function SegmentCard({ event, segment }: { event: ClipEvent; segment: Segment })
           return (
             <li
               key={cam}
-              className="rounded-md bg-white/[0.03] px-2 py-1.5 text-[11px]"
+              className="rounded-md ov-03 px-2 py-1.5 text-[11px]"
               data-camera={cam}
             >
               <div className="flex items-center justify-between gap-2">

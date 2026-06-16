@@ -88,7 +88,7 @@ function Heatmap({ event, expectedLen }: { event: ClipEvent; expectedLen: number
             ratio === 1 ? "bg-(--color-success)"
             : ratio >= 0.5 ? "bg-(--color-warning)"
             : ratio > 0 ? "bg-(--color-danger)"
-            : "bg-white/10";
+            : "ov-10";
           return (
             <span
               key={seg.id}

@@ -218,7 +218,7 @@ function MobileTopBar({ onMenuClick, onInspectorClick }: { onMenuClick: () => vo
     <div className="glass flex items-center justify-between gap-2 px-3 py-2.5 m-2 rounded-2xl">
       <button
         onClick={onMenuClick}
-        className="flex items-center gap-2 rounded-xl border border-(--color-border) bg-white/[0.04] px-2.5 py-1.5 text-[12px] text-(--color-text-dim) hover:text-(--color-text)"
+        className="flex items-center gap-2 rounded-xl border border-(--color-border) ov-04 px-2.5 py-1.5 text-[12px] text-(--color-text-dim) hover:text-(--color-text)"
         aria-label="Open library"
       >
         <MenuGlyph className="h-4 w-4" />
@@ -230,7 +230,7 @@ function MobileTopBar({ onMenuClick, onInspectorClick }: { onMenuClick: () => vo
       </div>
       <button
         onClick={onInspectorClick}
-        className="flex items-center gap-2 rounded-xl border border-(--color-border) bg-white/[0.04] px-2.5 py-1.5 text-[12px] text-(--color-text-dim) hover:text-(--color-text)"
+        className="flex items-center gap-2 rounded-xl border border-(--color-border) ov-04 px-2.5 py-1.5 text-[12px] text-(--color-text-dim) hover:text-(--color-text)"
         aria-label="Toggle inspector"
       >
         <InspectorIcon className="h-4 w-4" />
@@ -281,7 +281,7 @@ function Drawer({
           </span>
           <button
             onClick={onClose}
-            className="grid h-8 w-8 place-items-center rounded-lg text-(--color-text-dim) hover:bg-white/5 hover:text-(--color-text)"
+            className="grid h-8 w-8 place-items-center rounded-lg text-(--color-text-dim) hover:ov-05 hover:text-(--color-text)"
             aria-label="Close"
           >
             <CloseIcon className="h-4 w-4" />
