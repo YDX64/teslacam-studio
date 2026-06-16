@@ -9,6 +9,7 @@
 /*    into multiple lines or overflows the panel.                              */
 
 import { useEffect, useRef as useRefSync, useState } from "react";
+import { createPortal } from "react-dom";
 import clsx from "clsx";
 import {
   backendAvailable,
@@ -490,23 +491,48 @@ function Menu({
   icon, label, options,
 }: { icon: React.ReactNode; label: string; options: MenuOption[] }) {
   const [open, setOpen] = useState(false);
-  const [flipUp, setFlipUp] = useState(false);
-  const ref = useRefClickAway(() => setOpen(false));
   const btnRef = useRefSync<HTMLButtonElement | null>(null);
+  const menuRef = useRefSync<HTMLDivElement | null>(null);
+  const [coords, setCoords] = useState<{ left: number; top?: number; bottom?: number; up: boolean }>({ left: 0, up: false });
 
-  // When opening, decide whether to flip the menu upward if there's
-  // not enough space below. Roughly: each option ~44px + paddings.
+  // Measure the trigger and position the menu. It is rendered through a
+  // portal on <body> (see below) so these are viewport coordinates, and the
+  // menu can never be trapped behind the player / timeline stacking contexts.
   useEffect(() => {
     if (!open || !btnRef.current) return;
-    const btn = btnRef.current;
-    const rect = btn.getBoundingClientRect();
-    const estimatedMenuHeight = options.length * 44 + 16;
+    const MENU_W = 184;
+    const rect = btnRef.current.getBoundingClientRect();
+    const estimatedMenuHeight = options.length * 40 + 16;
     const spaceBelow = window.innerHeight - rect.bottom;
-    setFlipUp(spaceBelow < estimatedMenuHeight && rect.top > estimatedMenuHeight);
+    const up = spaceBelow < estimatedMenuHeight && rect.top > spaceBelow;
+    const left = Math.max(8, Math.min(rect.left, window.innerWidth - MENU_W - 8));
+    setCoords(up
+      ? { left, bottom: window.innerHeight - rect.top + 6, up: true }
+      : { left, top: rect.bottom + 6, up: false });
   }, [open, options.length]);
 
+  // Close on outside click (the portaled menu counts as "inside") or when the
+  // layout shifts under it.
+  useEffect(() => {
+    if (!open) return;
+    function onDown(e: MouseEvent) {
+      const t = e.target as Node;
+      if (btnRef.current?.contains(t) || menuRef.current?.contains(t)) return;
+      setOpen(false);
+    }
+    function dismiss() { setOpen(false); }
+    document.addEventListener("mousedown", onDown);
+    window.addEventListener("resize", dismiss);
+    window.addEventListener("scroll", dismiss, true);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      window.removeEventListener("resize", dismiss);
+      window.removeEventListener("scroll", dismiss, true);
+    };
+  }, [open]);
+
   return (
-    <div ref={ref} className="relative">
+    <div className="relative">
       <button
         ref={btnRef}
         type="button"
@@ -520,14 +546,13 @@ function Menu({
       >
         {icon}
         <span>{label}</span>
-        <span className="text-[8px] opacity-60">{flipUp ? "▴" : "▾"}</span>
+        <span className="text-[8px] opacity-60">{coords.up ? "▴" : "▾"}</span>
       </button>
-      {open && (
+      {open && createPortal(
         <div
-          className={clsx(
-            "glass-strong absolute right-0 z-[60] min-w-[160px] rounded-xl p-1 shadow-(--shadow-pop)",
-            flipUp ? "bottom-full mb-1.5" : "top-full mt-1.5",
-          )}
+          ref={menuRef}
+          style={{ position: "fixed", left: coords.left, top: coords.top, bottom: coords.bottom, zIndex: 1000 }}
+          className="glass-strong min-w-[160px] rounded-xl p-1 shadow-(--shadow-pop)"
         >
           {options.map(o => (
             <button
@@ -544,7 +569,8 @@ function Menu({
               {o.label}
             </button>
           ))}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
