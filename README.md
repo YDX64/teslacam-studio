@@ -56,3 +56,9 @@ The PWA is built to work in Tesla's Chromium browser. To view your dashcam clips
 3. Open `http://<your-mac-ip>:4173/` in the Tesla browser.
 
 Older Model S/X without LTE-video may still work locally; newer cars get the full experience.
+
+## Author
+
+Built and maintained by **Yunus** ([@YDX64](https://github.com/YDX64)) — founder of [YOURWEB](https://yourweb.se), a Gothenburg-based web agency focused on websites, e-commerce, and secure digital solutions.
+
+Contact: [info@yourweb.se](mailto:info@yourweb.se) · [yourweb.se](https://yourweb.se)
